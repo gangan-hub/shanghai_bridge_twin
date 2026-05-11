@@ -4,7 +4,9 @@ import dotenv from "dotenv";
 import authRouter from "./routes/auth.js";
 import bridgesRouter from "./routes/bridges.js";
 import modelsRouter from "./routes/models.js";
-import adminRouter from "./routes/admin.js";
+import gnnRouter from "./routes/gnn.js";
+// 【新增】引入我们自己写的 Python 运行路由
+import runPythonRouter from "./routes/run_python.js"; 
 import { runMigrations } from "./migrate.js";
 import { query } from "./db.js";
 
@@ -25,16 +27,19 @@ app.get("/health", async (_req, res) => {
     return res.json({ ok: true, bridgeCount: null, dbError: e?.message || String(e) });
   }
 });
+
 app.use("/api/auth", authRouter);
 app.use("/api/bridges", bridgesRouter);
 app.use("/api/models", modelsRouter);
-app.use("/api/admin", adminRouter);
+app.use("/api/gnn", gnnRouter);
+// 【新增】注册路由，前端叫服务员的暗号是 /api/python
+app.use("/api/python", runPythonRouter);
 
 async function start() {
   try {
     await runMigrations();
   } catch (e) {
-    console.error("migrate warning:", e?.message || e);
+    console.error("startup warning:", e?.message || e);
   }
   app.listen(port, () => {
     console.log(`Backend listening on http://localhost:${port}`);

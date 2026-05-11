@@ -21,6 +21,17 @@ export async function runMigrations() {
     await query("ALTER TABLE bridges ADD COLUMN IF NOT EXISTS wgs_lon NUMERIC(9,6)");
     await query("ALTER TABLE bridges ADD COLUMN IF NOT EXISTS wgs_lat NUMERIC(9,6)");
 
+    // 补齐 /bridges 查询与 reload_from_xlsx 所需的全部列，避免缺列导致列表 500
+    await query("ALTER TABLE bridges ADD COLUMN IF NOT EXISTS bd_lon NUMERIC(9,6)");
+    await query("ALTER TABLE bridges ADD COLUMN IF NOT EXISTS bd_lat NUMERIC(9,6)");
+    await query("ALTER TABLE bridges ADD COLUMN IF NOT EXISTS node_0base INTEGER");
+    await query("ALTER TABLE bridges ADD COLUMN IF NOT EXISTS display_idx INTEGER");
+    await query("ALTER TABLE bridges ADD COLUMN IF NOT EXISTS func_name VARCHAR(100)");
+    await query("ALTER TABLE bridges ADD COLUMN IF NOT EXISTS road_name VARCHAR(200)");
+    await query("ALTER TABLE bridges ADD COLUMN IF NOT EXISTS road_class VARCHAR(50)");
+    await query("ALTER TABLE bridges ADD COLUMN IF NOT EXISTS lanes VARCHAR(50)");
+    await query("ALTER TABLE bridges ADD COLUMN IF NOT EXISTS poi_flow VARCHAR(50)");
+
     const colRows = await query(
       `SELECT column_name FROM information_schema.columns
        WHERE table_schema = 'public' AND table_name = 'bridges'`

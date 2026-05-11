@@ -4,7 +4,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 
 const client = axios.create({
   baseURL: "/api",
-  timeout: 30000, // 增加超时时间以支持爬虫同步
+  timeout: 120000, // 改为 2 分钟 (之前 30 秒对 AI 推理完全不够)
 });
 
 client.interceptors.request.use((config) => {
