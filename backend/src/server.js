@@ -5,8 +5,9 @@ import authRouter from "./routes/auth.js";
 import bridgesRouter from "./routes/bridges.js";
 import modelsRouter from "./routes/models.js";
 import adminRouter from "./routes/admin.js";
+import gnnRouter from "./routes/gnn.js";
 import { runMigrations } from "./migrate.js";
-import { query } from "./db.js";
+import { importExcelData } from "./excelImport.js";
 
 dotenv.config();
 
@@ -29,12 +30,16 @@ app.use("/api/auth", authRouter);
 app.use("/api/bridges", bridgesRouter);
 app.use("/api/models", modelsRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/gnn", gnnRouter);
 
 async function start() {
   try {
     await runMigrations();
+    // 启动时自动从 Excel 同步数据
+    console.log("Auto-syncing data from Excel on startup...");
+    await importExcelData();
   } catch (e) {
-    console.error("migrate warning:", e?.message || e);
+    console.error("startup warning:", e?.message || e);
   }
   app.listen(port, () => {
     console.log(`Backend listening on http://localhost:${port}`);

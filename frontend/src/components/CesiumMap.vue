@@ -23,7 +23,66 @@ let viewer;
 let tileset;
 let markerEntity;
 let bridgeEntities = [];
+let gnnEdges = [];
 let handler;
+
+// 绘制 GNN 推演结果（节点变色与流量数值显示）
+function updateGnnVisualization(stepData) {
+  if (!viewer) return;
+  
+  const { nodes } = stepData;
+  console.log("Updating GNN Visualization step:", stepData.step);
+
+  // 1. 更新所有节点颜色和标签
+  bridgeEntities.forEach(entity => {
+    const bridgeId = entity.id.split('-')[1];
+    const bridge = props.bridges.find(b => String(b.id) === String(bridgeId));
+    
+    if (bridge && nodes[bridge.code] !== undefined) {
+      const load = nodes[bridge.code]; // 0-100 负载比例
+      const flowValue = (load * 2.5).toFixed(0); 
+      
+      // 定义更好看的颜色
+      const colorGreen = Cesium.Color.fromCssColorString("#10b981"); // 翡翠绿，更现代
+      const colorOrange = Cesium.Color.fromCssColorString("#f59e0b"); // 琥珀橙
+      const colorRed = Cesium.Color.fromCssColorString("#ef4444"); // 珊瑚红
+
+      let color;
+      if (flowValue >= 60) {
+        color = colorRed;
+      } else if (flowValue >= 30) {
+        color = colorOrange;
+      } else {
+        color = colorGreen;
+      }
+      
+      // 更新点位颜色和大小
+      entity.point.color = color.withAlpha(1.0);
+      entity.point.pixelSize = 14 + (load / 10);
+      entity.point.outlineWidth = 0; // 确保推演时也没有描边
+      
+      // 节点字只显示数值和单位 (辆/5分)
+      entity.label.text = `${flowValue} 辆/5分`;
+      entity.label.fillColor = color;
+      entity.label.outlineColor = Cesium.Color.BLACK;
+      entity.label.outlineWidth = 2;
+      entity.label.showBackground = false; 
+      entity.label.show = true; 
+    } else {
+      // 非推演状态，恢复默认
+      entity.point.color = Cesium.Color.CYAN.withAlpha(0.9);
+      entity.point.pixelSize = 12;
+      entity.label.text = bridge?.name || "";
+      entity.label.fillColor = Cesium.Color.WHITE;
+      entity.label.showBackground = false; // 默认也是透明
+      entity.label.show = props.showAllLabels;
+    }
+  });
+
+  // 2. 清除所有连线（根据用户要求移除连线）
+  gnnEdges.forEach(e => viewer.entities.remove(e));
+  gnnEdges = [];
+}
 
 // 切换地图模式
 function updateMapMode(mode) {
@@ -89,6 +148,7 @@ function updateMapMode(mode) {
 // 渲染所有桥梁标记
 function renderBridges() {
   if (!viewer) return;
+  console.log("Rendering bridges, count:", props.bridges.length);
   // 清理旧标记
   bridgeEntities.forEach((e) => viewer.entities.remove(e));
   bridgeEntities = [];
@@ -97,7 +157,10 @@ function renderBridges() {
     // 优先使用 WGS84 坐标
     let lon = Number(bridge.wgs_lon || bridge.lon);
     let lat = Number(bridge.wgs_lat || bridge.lat);
-    if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
+      console.warn("Invalid coordinates for bridge:", bridge.name, lon, lat);
+      return;
+    }
 
     // 兜底纠偏
     if (Math.abs(lon) <= 90 && Math.abs(lat) > 90 && Math.abs(lat) <= 180) {
@@ -111,12 +174,12 @@ function renderBridges() {
       name: bridge.name,
       position: Cesium.Cartesian3.fromDegrees(lon, lat, 10),
       point: {
-        pixelSize: 8,
-        color: Cesium.Color.fromCssColorString("#3b82f6").withAlpha(0.9),
-        outlineColor: Cesium.Color.WHITE,
-        outlineWidth: 1.5,
+        pixelSize: 12, // 增大一点
+        color: Cesium.Color.CYAN.withAlpha(0.9), // 亮青色，更明显
+        outlineWidth: 0, // 移除描边
         heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-        show: props.showAllPoints, // 基础点显示受“点显示”按钮控制
+        disableDepthTestDistance: Number.POSITIVE_INFINITY, // 确保永远在最前
+        show: props.showAllPoints,
       },
       label: {
         text: bridge.name,
@@ -125,11 +188,11 @@ function renderBridges() {
         outlineColor: Cesium.Color.BLACK,
         outlineWidth: 2,
         style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-        showBackground: false, // 移除背景
-        pixelOffset: new Cesium.Cartesian2(0, -18),
+        showBackground: false, // 设为透明
+        pixelOffset: new Cesium.Cartesian2(0, -25),
         heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        show: props.showAllLabels && !isCurrent, // 基础名显示受“名显示”按钮控制
+        show: props.showAllLabels && !isCurrent,
       },
     });
     bridgeEntities.push(entity);
@@ -138,7 +201,6 @@ function renderBridges() {
 
 onMounted(() => {
   viewer = new Cesium.Viewer(mapRef.value, {
-    // ... 保持原有配置不变 ...
     baseLayer: false,
     terrainProvider: new Cesium.EllipsoidTerrainProvider(),
     timeline: false,
@@ -155,6 +217,16 @@ onMounted(() => {
 
   // 初始设置地图模式
   updateMapMode(props.mapMode);
+
+  // 设置初始视角到上海
+  viewer.camera.setView({
+    destination: Cesium.Cartesian3.fromDegrees(121.4737, 31.2304, 20000), // 上海中心城区
+    orientation: {
+      heading: Cesium.Math.toRadians(0),
+      pitch: Cesium.Math.toRadians(-90),
+      roll: 0.0
+    }
+  });
 
   viewer.scene.globe.enableLighting = false;
   viewer.scene.skyAtmosphere.show = true;
@@ -210,8 +282,7 @@ function flyToBridge(bridge, height = 1200) {
     point: {
       pixelSize: 12,
       color: Cesium.Color.CYAN.withAlpha(0.95),
-      outlineColor: Cesium.Color.WHITE.withAlpha(0.95),
-      outlineWidth: 2,
+      outlineWidth: 0, // 移除当前选中的描边
       heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
       show: true, // 查询点始终显示，不受全局按钮影响
     },
@@ -246,6 +317,7 @@ function flyToBridge(bridge, height = 1200) {
 
 defineExpose({
   flyToBridge,
+  updateGnnVisualization
 });
 
 watch(

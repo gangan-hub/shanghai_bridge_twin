@@ -15,7 +15,7 @@
 - `backend`：REST API 与鉴权
 - `sql`：数据库初始化脚本（含 PostGIS）
 
-## 快速启动
+## 启动说明
 
 ### 1) 初始化数据库
 
@@ -83,8 +83,13 @@ npm run db:repair
 
 3. 前端若 token 过期会返回 401，请**重新登录**后再查列表。
 
-### 3) 启动前端
+### 3. AI 服务 (FastAPI) - 必须启动以支持推演
+```bash
+# 确保已安装 torch, fastapi, uvicorn, pandas
+python ai_models/api_server.py
+```
 
+### 4. 前端 (Vue 3)
 ```bash
 cd frontend
 npm install

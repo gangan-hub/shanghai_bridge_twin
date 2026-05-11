@@ -92,6 +92,9 @@
             <!-- 健康监测看板 -->
             <HealthDashboard :bridge="currentBridge" />
 
+            <!-- GNN 流量推演面板 -->
+            <GnnDeduction :current-bridge="currentBridge" @update-gnn="handleGnnUpdate" />
+
             <div class="panel-title" style="margin-top: 14px;">样式/预览（Three.js）</div>
             <div class="three-card">
               <ThreeScene />
@@ -104,7 +107,7 @@
               <div class="panel-title" style="margin-top: 20px; color: #fbbf24;">系统管理</div>
               <div class="admin-tools">
                 <el-button type="danger" plain size="small" :loading="syncing" @click="handleSyncData">
-                  同步高德数据
+                  同步 Excel 数据
                 </el-button>
                 <div v-if="currentBridge" class="model-bind-tool">
                   <div class="small-label">绑定 3D 模型路径:</div>
@@ -176,7 +179,8 @@ import { useAuthStore } from "./stores/auth";
 import CesiumMap from "./components/CesiumMap.vue";
 import ThreeScene from "./components/ThreeScene.vue";
 import HealthDashboard from "./components/HealthDashboard.vue";
-import { Loading } from "@element-plus/icons-vue";
+import GnnDeduction from "./components/GnnDeduction.vue";
+import { Loading, Share } from "@element-plus/icons-vue";
 
 const auth = useAuthStore();
 const loginForm = reactive({ username: "admin", password: "admin123" });
@@ -210,6 +214,7 @@ async function loadBridges() {
   try {
     const { data } = await client.get("/bridges", { params: query });
     let records = data.records || [];
+    console.log("Loaded bridges:", records.length);
     // 优先将杨浦大桥排在首位
     records.sort((a, b) => {
       const nameA = a.name || "";
@@ -219,6 +224,7 @@ async function loadBridges() {
       return 0;
     });
     bridges.value = records;
+    console.log(`Successfully loaded ${records.length} bridges from backend.`);
   } catch (e) {
     ElMessage.error(e.response?.data?.message || "查询失败");
   }
@@ -306,6 +312,10 @@ async function handleBindModel() {
   } catch (e) {
     // 拦截器已处理错误显示
   }
+}
+
+function handleGnnUpdate(stepData) {
+  cesiumRef.value?.updateGnnVisualization(stepData);
 }
 </script>
 

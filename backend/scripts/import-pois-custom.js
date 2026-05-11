@@ -3,10 +3,10 @@ import path from "node:path";
 import pg from "pg";
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), "backend", ".env") });
 
 async function run() {
-  const sqlPath = path.resolve(process.cwd(), "..", "update_pois.sql");
+  const sqlPath = path.resolve(process.cwd(), "update_from_excel.sql");
   if (!fs.existsSync(sqlPath)) {
     console.error(`SQL file not found: ${sqlPath}`);
     return;
@@ -22,9 +22,9 @@ async function run() {
 
   try {
     const sql = fs.readFileSync(sqlPath, "utf8");
-    console.log("Starting to import POIs...");
+    console.log("Starting to import custom POIs from Excel...");
     await pool.query(sql);
-    console.log("Successfully integrated POI data into the database.");
+    console.log("Successfully updated database with 358 bridge nodes.");
   } catch (e) {
     console.error("Error integrating data:", e.message);
   } finally {
