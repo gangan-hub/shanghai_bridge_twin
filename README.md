@@ -52,11 +52,11 @@ npm run dev
 
 Cesium 定位使用 **WGS84（经纬度）**。如果你的桥梁坐标来自：
 - 高德/腾讯：通常为 `GCJ-02`
-- 百度：通常为 `gcj02``
+- 百度：通常为 `bd-09`
 
 在 `backend/.env` 配置（**默认 `bd09`**，与百度台账一致）：
 
-- `COORD_SOURCE=bd09`（默认，接口会把gcj02 转为 GCJ-02 再转为 WGS84）
+- `COORD_SOURCE=bd09`（默认，接口会把 bd-09 转为 GCJ-02 再转为 WGS84）
 - `COORD_SOURCE=wgs84`（数据已是 GPS/WGS84 时用）
 - `COORD_SOURCE=gcj02`（数据已是，接口会把gcj02 转为 WGS84）
 
