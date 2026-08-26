@@ -125,7 +125,7 @@ function renderBridges() {
         show: props.showAllPoints,
       },
       label: {
-        text: buildBridgeLabelText(bridge, node0Base),
+        text: "",
         font: "12px sans-serif",
         fillColor: COLOR_LABEL_TEXT,
         outlineColor: Cesium.Color.WHITE,
@@ -137,12 +137,14 @@ function renderBridges() {
         pixelOffset: new Cesium.Cartesian2(0, -25),
         heightReference: Cesium.HeightReference.NONE,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        show: (labelCfg.value.showNodeIdx || labelCfg.value.showNodeName),
+        show: true,
       },
     });
     bridgeEntities.push(entity);
-    entityMeta.set(entity, { bridge, arrayIndex, node0Base });
+    entityMeta.set(entity, { bridge, arrayIndex, node0Base, flowText: "" });
   });
+  /* 统一由同步机制拼接标签内容并应用显隐状态 */
+  syncNodeState();
   /* 连线要在节点全部渲染后再画（因为连线依赖 node0BaseMap，而 node0BaseMap 依赖 bridges） */
   if (lastTopology.value) renderTopology(lastTopology.value);
 }
@@ -187,41 +189,78 @@ function renderTopology(topologyData) {
 }
 
 const lastTopology = ref(null);
-/* 标签各部分独立显隐：序号 / 名称 由各自开关单独控制，
-   当两部分都关闭时标签整体隐藏；任一开启即显示 */
+/* 标签各部分独立显隐：序号 / 名称 / 流量徽标 由各自开关单独控制 */
 const labelCfg = ref({ showNodeIdx: true, showNodeName: true, showFlowBadge: true });
+
+/* ============ 核心：独立的节点与标签显隐同步机制 ============
+   文字标签内容完全由开关状态独立拼接：
+   A. 序号开关 -> labelCfg.showNodeIdx
+   B. 名称开关 -> labelCfg.showNodeName
+   C. 流量徽标 -> labelCfg.showFlowBadge 且 meta.flowText 有推演数据
+   推演动画只负责改颜色和存 flowText，界面统一由本函数刷新 */
+function syncNodeState() {
+  if (!viewer) return;
+  bridgeEntities.forEach((entity) => {
+    const meta = entityMeta.get(entity);
+    if (!meta) return;
+
+    /* 1. 点的显隐 */
+    if (entity.point) {
+      entity.point.show = props.showAllPoints;
+    }
+
+    /* 2. 标签内容的独立解耦拼接 */
+    if (entity.label) {
+      const parts = [];
+
+      /* 开关A：是否显示序号 */
+      if (labelCfg.value.showNodeIdx) {
+        const disp =
+          meta.bridge._displayIdx != null
+            ? meta.bridge._displayIdx
+            : meta.bridge.display_idx != null && !Number.isNaN(Number(meta.bridge.display_idx))
+              ? Number(meta.bridge.display_idx)
+              : meta.node0Base + 1;
+        parts.push(String(disp));
+      }
+
+      /* 开关B：是否显示名称 */
+      if (labelCfg.value.showNodeName) {
+        parts.push(meta.bridge.name || "");
+      }
+
+      /* 开关C：流量徽标（开关打开且当前有推演数据时才显示） */
+      if (labelCfg.value.showFlowBadge && meta.flowText) {
+        parts.push(meta.flowText);
+      }
+
+      if (parts.length > 0) {
+        entity.label.text = parts.join(" | ");
+        entity.label.show = true;
+      } else {
+        entity.label.show = false;
+      }
+    }
+  });
+}
+
 watch(() => props.showNodeIdx, (v) => {
   labelCfg.value.showNodeIdx = v;
-  renderBridges();
+  syncNodeState();
 });
 watch(() => props.showAllLabels, (v) => {
   labelCfg.value.showNodeName = v;
-  renderBridges();
+  syncNodeState();
 });
-function buildBridgeLabelText(bridge, node0Base) {
-  const parts = [];
-  if (labelCfg.value.showNodeIdx) {
-    const disp =
-      bridge._displayIdx != null
-        ? Number(bridge._displayIdx)
-        : bridge.display_idx != null && !Number.isNaN(Number(bridge.display_idx))
-          ? Number(bridge.display_idx)
-          : Number(node0Base) + 1;
-    parts.push(String(disp));
-  }
-  if (labelCfg.value.showNodeName) parts.push(bridge.name || "");
-  if (labelCfg.value.showNodeIdx && labelCfg.value.showNodeName && parts.length === 2) {
-    return `${parts[0]} | ${parts[1]}`;
-  }
-  return parts.join("");
-}
+watch(() => props.showAllPoints, () => syncNodeState());
+
 function setLabelLayer(cfg) {
   if (cfg) {
-    if ('showIndex' in cfg) cfg.showNodeIdx = cfg.showIndex;
-    if ('showName' in cfg) cfg.showNodeName = cfg.showName;
+    if ("showIndex" in cfg) cfg.showNodeIdx = cfg.showIndex;
+    if ("showName" in cfg) cfg.showNodeName = cfg.showName;
   }
-  Object.assign(labelCfg.value, cfg || {});
-  renderBridges();
+  Object.assign(labelCfg.value, cfg || {}); // showFlowBadge 经此透传
+  syncNodeState();
 }
 
 function setTopologyVisible(visible) {
@@ -340,15 +379,12 @@ function updateInferenceVisualization({ stepData, nodeIds, stepIndex, totalSteps
 
   // bridgeEntities 的 push 顺序 === props.bridges 遍历顺序，所以直接按数组下标对应
   bridgeEntities.forEach((entity, arrayIdx) => {
+    const meta = entityMeta.get(entity);
     const nodeObj = nodeMap.get(arrayIdx);
     if (!nodeObj) {
       entity.point.color = COLOR_CYAN;
       entity.point.pixelSize = 12;
-      const bridge = props.bridges[arrayIdx];
-      entity.label.text = bridge?.name || "";
-      entity.label.fillColor = COLOR_LABEL_TEXT;
-      entity.label.outlineColor = Cesium.Color.WHITE;
-      entity.label.show = (labelCfg.value.showNodeIdx || labelCfg.value.showNodeName);
+      if (meta) meta.flowText = "";
       return;
     }
     const flow = parseFloat(nodeObj.flow_pred);
@@ -362,16 +398,12 @@ function updateInferenceVisualization({ stepData, nodeIds, stepIndex, totalSteps
     entity.point.pixelSize = 12;
     entity.point.outlineColor = Cesium.Color.WHITE;
     entity.point.outlineWidth = 0;
-    entity.label.text = `${flow.toFixed(0)} 辆/h`;
-    entity.label.fillColor = color;
-    entity.label.outlineColor = Cesium.Color.BLACK;
-    entity.label.outlineWidth = 2;
-    entity.label.showBackground = false;
-    entity.label.backgroundColor = COLOR_LABEL_BG;
-    entity.label.backgroundPadding = new Cesium.Cartesian2(6, 3);
-    entity.label.show = true;
+    /* 只存流量数据，不直接改界面；标签内容由 syncNodeState 统一拼接 */
+    if (meta) meta.flowText = `${flow.toFixed(0)} 辆/h`;
   });
 
+  /* 界面刷新统一交给同步机制 */
+  syncNodeState();
 
   console.log(`[Inference Step ${stepIndex + 1}/${totalSteps}] R=${redN} O=${orangeN} G=${greenN} Flow-links=${gnnEdgeEntities.length}`);
 }
@@ -392,15 +424,15 @@ function resetVisualization() {
   });
   linkEntities.length = 0;
 
-  bridgeEntities.forEach((entity, arrayIdx) => {
+  bridgeEntities.forEach((entity) => {
+    const meta = entityMeta.get(entity);
+    if (meta) meta.flowText = ""; // 清除流量文字
     entity.point.color = COLOR_CYAN;
     entity.point.pixelSize = 12;
-    const bridge = props.bridges[arrayIdx];
-    entity.label.text = bridge?.name || "";
-    entity.label.fillColor = COLOR_LABEL_TEXT;
-    entity.label.outlineColor = Cesium.Color.WHITE;
-    entity.label.show = (labelCfg.value.showNodeIdx || labelCfg.value.showNodeName);
   });
+
+  /* 界面刷新统一交给同步机制 */
+  syncNodeState();
 }
 /* 新增：上海桥隧蔓延模型专用高亮与重置 */
 function highlightSpreadNode(nodeId) {
@@ -584,10 +616,7 @@ function flyToBridge(bridge, height = 1200) {
       show: true,
     },
   });
-  bridgeEntities.forEach((e) => {
-    e.label.show = (labelCfg.value.showNodeIdx || labelCfg.value.showNodeName);
-    e.point.show = props.showAllPoints;
-  });
+  syncNodeState();
   viewer.camera.flyTo({
     destination: Cesium.Cartesian3.fromDegrees(lon, lat, height),
   });
@@ -611,6 +640,7 @@ function updateGnnVisualization(stepDataRawOrWrapperObj) {
   gnnEdgeEntities = [];
   let redN = 0, orangeN = 0, greenN = 0;
   bridgeEntities.forEach((entity, arrayIdx) => {
+    const meta = entityMeta.get(entity);
     const bridge = props.bridges[arrayIdx];
     let load = null;
     if (bridge && nodesObj[bridge.code] !== undefined) load = parseFloat(nodesObj[bridge.code]);
@@ -618,10 +648,7 @@ function updateGnnVisualization(stepDataRawOrWrapperObj) {
     if (load === null || !Number.isFinite(load)) {
       entity.point.color = COLOR_CYAN;
       entity.point.pixelSize = 12;
-      entity.label.text = bridge?.name || "";
-      entity.label.fillColor = COLOR_LABEL_TEXT;
-      entity.label.outlineColor = Cesium.Color.WHITE;
-      entity.label.show = (labelCfg.value.showNodeIdx || labelCfg.value.showNodeName);
+      if (meta) meta.flowText = "";
       return;
     }
     let color;
@@ -630,15 +657,10 @@ function updateGnnVisualization(stepDataRawOrWrapperObj) {
     else { color = COLOR_GREEN; greenN++; }
     entity.point.color = color.withAlpha(1.0);
     entity.point.pixelSize = 12;
-    entity.label.text = `${load.toFixed(1)} %`;
-    entity.label.fillColor = color;
-    entity.label.outlineColor = Cesium.Color.BLACK;
-    entity.label.outlineWidth = 2;
-    entity.label.showBackground = true;
-    entity.label.backgroundColor = COLOR_LABEL_BG;
-    entity.label.backgroundPadding = new Cesium.Cartesian2(6, 3);
-    entity.label.show = true;
+    /* 只存流量数据，界面由 syncNodeState 统一刷新 */
+    if (meta) meta.flowText = `${load.toFixed(1)} %`;
   });
+  syncNodeState();
   console.log(`[GNN 旧模式] R=${redN} O=${orangeN} G=${greenN}`);
 }
 

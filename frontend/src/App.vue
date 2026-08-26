@@ -110,52 +110,40 @@
                   </el-select>
                 </div>
 
-                <!-- 搜索框（联想建议） + 查询按钮 -->
-                <el-space wrap style="margin-top: 10px;">
-                  <el-autocomplete
-                    v-model="searchKeyword"
-                    :fetch-suggestions="searchQuerySuggestions"
-                    placeholder="搜索序号/桥名"
-                    style="width: 190px;"
-                    clearable
-                    :trigger-on-focus="false"
-                    @select="onSearchSuggestionSelect"
-                    @keyup.enter="handleSearch"
-                    popper-class="search-suggest-popper"
-                  >
-                    <template #default="{ item }">
-                      <div class="search-suggest-item">
-                        <span class="b-code">#{{ item._displayIdx }}</span>
-                        <span class="b-name">{{ item.name }}</span>
-                        <span class="b-dist">{{ item.district }}</span>
-                      </div>
-                    </template>
-                  </el-autocomplete>
-                  <el-button type="primary" size="small" @click="handleSearch" :loading="flyingToBridge">
-                    {{ flyingToBridge ? '跳转中...' : '查询' }}
-                  </el-button>
-                </el-space>
+                            <!-- 搜索框 + 查询按钮 -->
+                  <el-space wrap style="margin-top: 10px;">
+                    <el-input
+                      v-model="searchKeyword"
+                      placeholder="搜索序号/桥名"
+                      style="width: 190px;"
+                      clearable
+                      @keyup.enter="handleSearch"
+                    />
+                    <el-button type="primary" size="small" @click="handleSearch" :loading="flyingToBridge">
+                      {{ flyingToBridge ? '跳转中...' : '查询' }}
+                    </el-button>
+                  </el-space>
 
-                <!-- 搜索结果面板（多结果时展示） -->
-                <transition name="slide-down">
-                  <div v-if="searchResults.length > 0" class="search-results-panel">
-                    <div class="search-results-header">
-                      <span>找到 {{ searchResults.length }} 座匹配桥梁</span>
-                      <el-button link type="primary" size="small" @click="searchResults = []">收起</el-button>
-                    </div> 
-                    <div
-                      v-for="r in searchResults"
-                      :key="r.id"
-                      class="search-results-item"
-                      :class="{ active: currentBridge?.id === r.id }"
-                      @click="onSearchResultClick(r)"
-                    >
-                      <span class="b-code">#{{ r._displayIdx }}</span>
-                      <span class="b-name">{{ r.name }}</span>
-                      <span class="b-dist">{{ r.district }}</span>
+                  <!-- 搜索结果面板（多结果时展示，保持不变） -->
+                  <transition name="slide-down">
+                    <div v-if="searchResults.length > 0" class="search-results-panel">
+                      <div class="search-results-header">
+                        <span>找到 {{ searchResults.length }} 座匹配桥梁</span>
+                        <el-button link type="primary" size="small" @click="searchResults = []">收起</el-button>
+                      </div> 
+                      <div
+                        v-for="r in searchResults"
+                        :key="r.id"
+                        class="search-results-item"
+                        :class="{ active: currentBridge?.id === r.id }"
+                        @click="onSearchResultClick(r)"
+                      >
+                        <span class="b-code">#{{ r._displayIdx }}</span>
+                        <span class="b-name">{{ r.name }}</span>
+                        <span class="b-dist">{{ r.district }}</span>
+                      </div>
                     </div>
-                  </div>
-                </transition>
+                  </transition>
 
                 <!-- 点显示 + 名显示 + 节点序号（三个 switch 同一行显示） -->
                 <div class="switch-row">
@@ -598,24 +586,6 @@ function handleSearch() {
     // 多结果：展示结果面板供用户选择
     searchResults.value = matches;
   }
-}
-
-/* 联想建议查询（el-autocomplete 回调） */
-function searchQuerySuggestions(queryStr, cb) {
-  const kw = String(queryStr || "").trim().toLowerCase();
-  if (!kw) { cb([]); return; }
-  const matches = bridges.value.filter((b) => {
-    const seqNo = String(b._displayIdx || 0);
-    return seqNo === kw || String(b.name || "").toLowerCase().includes(kw);
-  }).slice(0, 10); // 最多显示 10 条建议
-  cb(matches);
-}
-
-/* 联想建议选中回调 */
-function onSearchSuggestionSelect(item) {
-  searchKeyword.value = ""; // 清空搜索框
-  searchResults.value = []; // 清空多结果面板
-  selectBridge(item);
 }
 
 /* 搜索结果面板点击 */
