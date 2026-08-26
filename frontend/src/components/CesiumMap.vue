@@ -46,6 +46,16 @@ const COLOR_LINK_DEFAULT = Cesium.Color.fromCssColorString("#38BDF8"); // 星空
 const COLOR_LINK_GLOW = Cesium.Color.fromCssColorString("#0088FF"); // 折线图 PastData 色
 const COLOR_LABEL_BG = Cesium.Color.fromCssColorString("rgba(255, 255, 255, 0.85)"); // 节点名称浅色玻璃背景（对齐图2）
 const COLOR_LABEL_TEXT = Cesium.Color.fromCssColorString("#1A237E"); // 浅色玻璃背景上的深色文字
+/* 玻璃磨砂泡泡风格：对齐 shanghai-link-map.html 的玻璃标签配色 */
+const GLASS_BG = Cesium.Color.fromCssColorString("rgba(255, 255, 255, 0.15)");   // 白玻璃底（同 HTML glass-label-wrapper）
+const GLASS_OUTLINE = Cesium.Color.fromCssColorString("rgba(255, 255, 255, 0.92)"); // 泡泡白描边
+const GLASS_TEXT = Cesium.Color.fromCssColorString("#0284C7");   // 序号天蓝色（同 HTML bridge-node 色）
+
+/* 标签锚点偏移：两行（序号/名称）时用基础值；有流量徽标时标签多一行，
+   若不加大偏移，最底行的流量文字会压到节点上，因此按行高动态补偿 */
+const LABEL_LINE_HEIGHT = 17;                       // 与 13px 字体行高一致
+const LABEL_OFFSET_BASE = -25;                      // 原始偏移（序号+名称时距离刚好）
+const LABEL_OFFSET_WITH_FLOW = -17 - LABEL_LINE_HEIGHT; // 加流量后整体再抬高一行
 
 /* ============ 建立 node_0base → bridge 索引 ============
    ✅ 关键修复：即使 bridges 数组顺序被 ORDER BY id 打乱，我们依然能按 CSV 的 0 基 node 号正确找到对应桥！
@@ -126,15 +136,15 @@ function renderBridges() {
       },
       label: {
         text: "",
-        font: "12px sans-serif",
-        fillColor: COLOR_LABEL_TEXT,
+        font: "600 13px 'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', sans-serif",
+        fillColor: GLASS_TEXT,
         outlineColor: Cesium.Color.WHITE,
-        outlineWidth: 8,
+        outlineWidth: 4,
         style: Cesium.LabelStyle.FILL_AND_OUTLINE,
         showBackground: false,
-        backgroundColor: COLOR_LABEL_BG,
-        backgroundPadding: new Cesium.Cartesian2(6, 3),
-        pixelOffset: new Cesium.Cartesian2(0, -25),
+        backgroundColor: GLASS_BG,
+        backgroundPadding: new Cesium.Cartesian2(9, 5),
+        pixelOffset: new Cesium.Cartesian2(0, LABEL_OFFSET_BASE),
         heightReference: Cesium.HeightReference.NONE,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
         show: true,
@@ -230,12 +240,21 @@ function syncNodeState() {
       }
 
       /* 开关C：流量徽标（开关打开且当前有推演数据时才显示） */
-      if (labelCfg.value.showFlowBadge && meta.flowText) {
+      const showFlow = labelCfg.value.showFlowBadge && !!meta.flowText;
+      if (showFlow) {
         parts.push(meta.flowText);
       }
 
       if (parts.length > 0) {
-        entity.label.text = parts.join(" | ");
+        /* 竖排显示：序号 / 名称 / 流量 各占一行 */
+        entity.label.text = parts.join("\n");
+        /* 字体颜色跟随节点状态色（推演后红/黄/绿），无推演时用默认天蓝 */
+        entity.label.fillColor = meta.labelColor || GLASS_TEXT;
+        /* 有流量行时标签多一行，整体再抬高一行，避免流量文字压到节点 */
+        entity.label.pixelOffset = new Cesium.Cartesian2(
+          0,
+          showFlow ? LABEL_OFFSET_WITH_FLOW : LABEL_OFFSET_BASE
+        );
         entity.label.show = true;
       } else {
         entity.label.show = false;
@@ -398,8 +417,11 @@ function updateInferenceVisualization({ stepData, nodeIds, stepIndex, totalSteps
     entity.point.pixelSize = 12;
     entity.point.outlineColor = Cesium.Color.WHITE;
     entity.point.outlineWidth = 0;
-    /* 只存流量数据，不直接改界面；标签内容由 syncNodeState 统一拼接 */
-    if (meta) meta.flowText = `${flow.toFixed(0)} 辆/h`;
+    /* 字体颜色跟随节点拥堵状态：红/黄/绿 */
+    if (meta) {
+      meta.flowText = `${flow.toFixed(0)} 辆/h`;
+      meta.labelColor = color;
+    }
   });
 
   /* 界面刷新统一交给同步机制 */
@@ -426,7 +448,10 @@ function resetVisualization() {
 
   bridgeEntities.forEach((entity) => {
     const meta = entityMeta.get(entity);
-    if (meta) meta.flowText = ""; // 清除流量文字
+    if (meta) {
+      meta.flowText = ""; // 清除流量文字
+      meta.labelColor = null; // 字体颜色恢复默认天蓝
+    }
     entity.point.color = COLOR_CYAN;
     entity.point.pixelSize = 12;
   });
@@ -648,7 +673,10 @@ function updateGnnVisualization(stepDataRawOrWrapperObj) {
     if (load === null || !Number.isFinite(load)) {
       entity.point.color = COLOR_CYAN;
       entity.point.pixelSize = 12;
-      if (meta) meta.flowText = "";
+      if (meta) {
+        meta.flowText = "";
+        meta.labelColor = null;
+      }
       return;
     }
     let color;
@@ -658,7 +686,10 @@ function updateGnnVisualization(stepDataRawOrWrapperObj) {
     entity.point.color = color.withAlpha(1.0);
     entity.point.pixelSize = 12;
     /* 只存流量数据，界面由 syncNodeState 统一刷新 */
-    if (meta) meta.flowText = `${load.toFixed(1)} %`;
+    if (meta) {
+      meta.flowText = `${load.toFixed(1)} %`;
+      meta.labelColor = color;
+    }
   });
   syncNodeState();
   console.log(`[GNN 旧模式] R=${redN} O=${orangeN} G=${greenN}`);
