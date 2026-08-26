@@ -11,8 +11,8 @@ const props = defineProps({
   bridges: { type: Array, default: () => [] },
   modelUrl: { type: String, default: "" },
   showAllPoints: { type: Boolean, default: true },
-  showAllLabels: { type: Boolean, default: true },
-  showNodeIdx: { type: Boolean, default: true },
+  showAllLabels: { type: Boolean, default: false },
+  showNodeIdx: { type: Boolean, default: false },
   mapMode: { type: String, default: "voyager" },
   showTopology: { type: Boolean, default: true },
   showLinkMatrix: { type: Boolean, default: true },
@@ -51,11 +51,15 @@ const GLASS_BG = Cesium.Color.fromCssColorString("rgba(255, 255, 255, 0.15)");  
 const GLASS_OUTLINE = Cesium.Color.fromCssColorString("rgba(255, 255, 255, 0.92)"); // 泡泡白描边
 const GLASS_TEXT = Cesium.Color.fromCssColorString("#0284C7");   // 序号天蓝色（同 HTML bridge-node 色）
 
-/* 标签锚点偏移：两行（序号/名称）时用基础值；有流量徽标时标签多一行，
-   若不加大偏移，最底行的流量文字会压到节点上，因此按行高动态补偿 */
-const LABEL_LINE_HEIGHT = 17;                       // 与 13px 字体行高一致
-const LABEL_OFFSET_BASE = -25;                      // 原始偏移（序号+名称时距离刚好）
-const LABEL_OFFSET_WITH_FLOW = -17 - LABEL_LINE_HEIGHT; // 加流量后整体再抬高一行
+/* 标签锚点偏移：Cesium 默认按标签中心对齐，行数不同（序号/名称/流量任意组合）
+   标签总高度就不同，中心对齐会导致底边离节点的距离忽近忽远。
+   改为按行数动态计算：保证「标签最底行文字到节点中心的距离」恒定不变。
+   公式：offset = -(底边距 + 行数 × 行高 / 2) */
+const LABEL_LINE_HEIGHT = 17;   // 与 13px 字体单行高度一致
+const LABEL_BOTTOM_GAP = 8;     // 标签底边距节点中心的固定像素距离
+function labelPixelOffset(lineCount) {
+  return new Cesium.Cartesian2(0, -(LABEL_BOTTOM_GAP + (lineCount * LABEL_LINE_HEIGHT) / 2));
+}
 
 /* ============ 建立 node_0base → bridge 索引 ============
    ✅ 关键修复：即使 bridges 数组顺序被 ORDER BY id 打乱，我们依然能按 CSV 的 0 基 node 号正确找到对应桥！
@@ -144,7 +148,7 @@ function renderBridges() {
         showBackground: false,
         backgroundColor: GLASS_BG,
         backgroundPadding: new Cesium.Cartesian2(9, 5),
-        pixelOffset: new Cesium.Cartesian2(0, LABEL_OFFSET_BASE),
+        pixelOffset: labelPixelOffset(1),
         heightReference: Cesium.HeightReference.NONE,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
         show: true,
@@ -200,7 +204,7 @@ function renderTopology(topologyData) {
 
 const lastTopology = ref(null);
 /* 标签各部分独立显隐：序号 / 名称 / 流量徽标 由各自开关单独控制 */
-const labelCfg = ref({ showNodeIdx: true, showNodeName: true, showFlowBadge: true });
+const labelCfg = ref({ showNodeIdx: props.showNodeIdx, showNodeName: props.showAllLabels, showFlowBadge: true });
 
 /* ============ 核心：独立的节点与标签显隐同步机制 ============
    文字标签内容完全由开关状态独立拼接：
@@ -250,11 +254,8 @@ function syncNodeState() {
         entity.label.text = parts.join("\n");
         /* 字体颜色跟随节点状态色（推演后红/黄/绿），无推演时用默认天蓝 */
         entity.label.fillColor = meta.labelColor || GLASS_TEXT;
-        /* 有流量行时标签多一行，整体再抬高一行，避免流量文字压到节点 */
-        entity.label.pixelOffset = new Cesium.Cartesian2(
-          0,
-          showFlow ? LABEL_OFFSET_WITH_FLOW : LABEL_OFFSET_BASE
-        );
+        /* 按实际行数动态计算偏移：任意开关组合下，标签底边到节点的距离恒定 */
+        entity.label.pixelOffset = labelPixelOffset(parts.length);
         entity.label.show = true;
       } else {
         entity.label.show = false;

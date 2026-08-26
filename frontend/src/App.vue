@@ -340,8 +340,8 @@ const modelUrl = ref("");
 const cesiumRef = ref(null);
 const trafficInfRef = ref(null);
 const showAllPoints = ref(true);
-const showAllLabels = ref(true);
-const showNodeIdx = ref(true);   // 节点序号显示（CesiumMap 标签中的序号部分）
+const showAllLabels = ref(false);
+const showNodeIdx = ref(false);   // 节点序号显示（CesiumMap 标签中的序号部分，默认关闭）
 const sidebarWidth = ref(380);
 const isResizingSidebar = ref(false);
 
