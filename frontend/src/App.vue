@@ -78,7 +78,6 @@
                 <span class="menu-badge">{{ bridges.length }}</span>
               </div>
               <div class="collapsible-body" v-show="collapse.bridgeList">
-                <!--  可搜索下拉选择器（点击才展开所有桥梁，替代 420px 常驻表格） -->
                 <div class="bridge-picker-row">
                   <el-select
                     v-model="bridgePickerId"
@@ -90,7 +89,6 @@
                     :remote-method="bridgeRemoteSearch"
                     :loading="bridgePickerLoading"
                     size="default"
-                    style="width: 100%;"
                     @change="onBridgePickerChange"
                     class="bridge-picker"
                     popper-class="bridge-picker-popper"
@@ -108,21 +106,32 @@
                       </div>
                     </el-option>
                   </el-select>
+                  <el-tooltip content="从 shanghaidata_x.xlsx 重新导入数据库" placement="top">
+                    <el-button
+                      class="sync-btn"
+                      type="warning"
+                      plain
+                      @click="syncFromExcel"
+                      :loading="isSyncing"
+                    >
+                      {{ isSyncing ? '同步中' : '同步' }}
+                    </el-button>
+                  </el-tooltip>
                 </div>
 
-                            <!-- 搜索框 + 查询按钮 -->
-                  <el-space wrap style="margin-top: 10px;">
-                    <el-input
-                      v-model="searchKeyword"
-                      placeholder="搜索序号/桥名"
-                      style="width: 190px;"
-                      clearable
-                      @keyup.enter="handleSearch"
-                    />
-                    <el-button type="primary" size="small" @click="handleSearch" :loading="flyingToBridge">
-                      {{ flyingToBridge ? '跳转中...' : '查询' }}
-                    </el-button>
-                  </el-space>
+                <!-- 搜索框 + 查询按钮 -->
+                <el-space wrap style="margin-top: 10px;">
+                  <el-input
+                    v-model="searchKeyword"
+                    placeholder="搜索序号/桥名"
+                    style="width: 190px;"
+                    clearable
+                    @keyup.enter="handleSearch"
+                  />
+                  <el-button type="primary" size="small" @click="handleSearch" :loading="flyingToBridge">
+                    {{ flyingToBridge ? '跳转中...' : '查询' }}
+                  </el-button>
+                </el-space>
 
                   <!-- 搜索结果面板（多结果时展示，保持不变） -->
                   <transition name="slide-down">
@@ -366,6 +375,27 @@ const mapMode = ref("voyager");
 const selectedBridge = ref(null);   // 当前选中桥梁（同步 Cesium 高亮）
 const flyingToBridge = ref(false);  // 跳转加载状态
 const searchResults = ref([]);      // 搜索多结果列表
+const isSyncing = ref(false);       // Excel → 数据库 同步状态
+
+/* --- 从 shanghaidata_x.xlsx 同步数据到数据库 --- */
+async function syncFromExcel() {
+  isSyncing.value = true;
+  try {
+    const { data } = await client.get("/bridges/reload_from_xlsx", { timeout: 120000 });
+    ElMessage.success(
+      `同步完成：更新 ${data.updated} 条，新增 ${data.inserted} 条` +
+      (data.removed ? `，清理旧数据 ${data.removed} 条` : "") +
+      (data.skipped ? `，跳过 ${data.skipped} 条` : "")
+    );
+    // 同步后刷新节点列表与地图
+    await loadBridges();
+  } catch (e) {
+    console.error("同步失败:", e);
+    ElMessage.error(e.response?.data?.message || "同步失败，请检查 Excel 文件与后端服务");
+  } finally {
+    isSyncing.value = false;
+  }
+}
 
 /* --- 上海交通蔓延预测参数与运行逻辑 --- */
 const isSpreadLoading = ref(false);
@@ -946,6 +976,16 @@ function handleGnnUpdate(stepData) {
    ================================================================ */
 .bridge-picker-row {
   margin-bottom: 2px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.bridge-picker-row .el-select {
+  flex: 1;
+}
+.sync-btn {
+  height: 40px;
+  padding: 0 12px;
 }
 .bridge-picker :deep(.el-select__wrapper) {
   background: rgba(15, 23, 42, 0.75) !important;

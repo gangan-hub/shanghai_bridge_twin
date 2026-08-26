@@ -16,7 +16,7 @@ scikit-learn>=1.4     # 训练参数寻优 (train_shanghai_params.py)
 gensim>=4.3; python_version < "3.13"   # node2vec 实现（暂不支持 3.13+）
 pillow>=10.0          # 蔓延动画 GIF 渲染
 
-# ---- 数据库同步 (scripts/import_excel_to_bridges.py) ----
+# ---- 数据库同步 ----
 psycopg2-binary>=2.9  # PostgreSQL 连接（Windows 直接可用）
 
 # ---- HTTP 请求环境 ----

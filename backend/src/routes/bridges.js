@@ -406,6 +406,17 @@ print(json.dumps(rows, ensure_ascii=False, allow_nan=False))
     // 假设 bridges 表唯一键是 code（若不存在则按 id 兜底）。
     let updated = 0, inserted = 0, skipped = 0;
 
+    // Excel 是唯一数据源：先删掉库里不在本次表格中的旧行（历史遗留 code 规则不同会形成孤儿）
+    const validCodes = rows.filter((r) => r.lon != null && r.lat != null).map((r) => r.code);
+    let removed = 0;
+    if (validCodes.length > 0) {
+      const del = await query(
+        `DELETE FROM bridges WHERE code <> ALL($1::varchar[])`,
+        [validCodes]
+      );
+      removed = del.rowCount || 0;
+    }
+
     for (const r of rows) {
       if (r.lon == null || r.lat == null) { skipped++; continue; }
       try {
@@ -464,7 +475,7 @@ print(json.dumps(rows, ensure_ascii=False, allow_nan=False))
     return res.json({
       ok: true,
       reloaded: rows.length,
-      updated, inserted, skipped,
+      updated, inserted, skipped, removed,
       xlsx_path: SHANGHAI_XLSX,
       xlsx_mtime: new Date(fs.statSync(SHANGHAI_XLSX).mtime).toISOString(),
       sample: rows.slice(0, 3),
