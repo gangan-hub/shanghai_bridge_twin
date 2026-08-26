@@ -1,5 +1,11 @@
 # 依赖文件夹，绝对不要提交
 node_modules/
+# Python 虚拟环境
+venv/
+.venv/
+# Python 缓存
+__pycache__/
+*.pyc
 # 构建产物
 dist/
 build/
