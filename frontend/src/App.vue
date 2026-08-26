@@ -593,7 +593,15 @@ function handleSearch() {
   searchResults.value = []; // 先清空之前的搜索结果
 
   if (!kw) {
-    ElMessage.warning("请输入搜索关键词");
+    // 空输入时默认跳转到 296 号杨浦大桥
+    const fallback =
+      bridges.value.find((b) => b._displayIdx === 296) ||
+      bridges.value.find((b) => String(b.name || "").includes("杨浦大桥"));
+    if (!fallback) {
+      ElMessage.warning("未找到默认桥梁（296号 杨浦大桥）");
+      return;
+    }
+    selectBridge(fallback);
     return;
   }
 
