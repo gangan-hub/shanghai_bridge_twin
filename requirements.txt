@@ -1,0 +1,23 @@
+# 上海市桥隧群数字孪生平台 - Python 依赖清单
+# 安装：pip install -r requirements.txt
+# 建议 Python 3.10 ~ 3.12
+
+# ---- AI 推演核心 (ai_models_flow) ----
+numpy>=2.0
+pandas>=2.2
+torch>=2.2            # CPU 版即可运行；有 NVIDIA 显卡建议安装 CUDA 版
+matplotlib>=3.8
+
+# ---- 数据处理 / Excel 读取 (scripts, ai_models_jam) ----
+openpyxl>=3.1         # 读取 .xlsx 桥梁台账
+networkx>=3.2         # node2vec 路网图计算
+scipy>=1.11           # DTW 邻接矩阵生成等
+scikit-learn>=1.4     # 训练参数寻优 (train_shanghai_params.py)
+gensim>=4.3; python_version < "3.13"   # node2vec 实现（暂不支持 3.13+）
+pillow>=10.0          # 蔓延动画 GIF 渲染
+
+# ---- 数据库同步 (scripts/import_excel_to_bridges.py) ----
+psycopg2-binary>=2.9  # PostgreSQL 连接（Windows 直接可用）
+
+# ---- HTTP 请求环境 ----
+requests>=2.31        # 统一 HTTP 客户端（配合 ai_models_flow/http_client.py 使用）
