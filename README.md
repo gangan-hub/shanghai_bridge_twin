@@ -88,10 +88,10 @@ Cesium 定位使用 **WGS84（经纬度）**。如果你的桥梁坐标来自：
 - 高德/腾讯：通常为 `GCJ-02`
 - 百度：通常为 `BD-09`
 
-在 `backend/.env` 配置（**默认 `gcj02`**）：
+在 `backend/.env` 配置（**默认 `BD-09`**）：
 
-- `COORD_SOURCE=gcj02`（默认，接口会把 GCJ-02 转为 WGS84）
-- `COORD_SOURCE=bd09`（数据为百度 BD-09 时用，先转 GCJ-02 再转 WGS84）
+- `COORD_SOURCE=bd09`（默认，数据为百度 BD-09 时用，先转 GCJ-02 再转 WGS84）
+-  `COORD_SOURCE=gcj02`（接口会把 GCJ-02 转为 WGS84）
 - `COORD_SOURCE=wgs84`（数据已是 GPS/WGS84 时用，不做转换）
 
 后端接口返回时会自动转换为 WGS84，用于 Cesium 定位；若记录中存在人工校准的 `wgs_lon` / `wgs_lat`，则优先使用校准值。
