@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上海市桥隧群数字孪生平台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        /* ============================================================
+           上海市桥隧群数字孪生平台 — 风格复刻 Demo
+           基于 gangan-hub/shanghai_bridge_twin 前端视觉体系
+           ============================================================ */
+
+        :root {
+            /* 主色调 */
+            --bg-deep: #02060d;
+            --bg-primary: #070b14;
+            --bg-card: rgba(15, 23, 42, 0.75);
+            --bg-card-hover: rgba(15, 23, 42, 0.9);
+            --bg-glass: rgba(15, 23, 42, 0.65);
+
+            /* 强调色 */
+            --accent-cyan: #00FFAA;
+            --accent-sky: #38BDF8;
+            --accent-emerald: #10B981;
+            --accent-yellow: #FACC15;
+            --accent-orange: #F59E0B;
+            --accent-red: #EF4444;
+
+            /* 文字色 */
+            --text-primary: #E2E8F0;
+            --text-secondary: #94A3B8;
+            --text-dim: #64748B;
+            --text-title: #F1F5F9;
+
+            /* 边框与分割 */
+            --border-glass: rgba(56, 189, 248, 0.25);
+            --border-glass-hover: rgba(56, 189, 248, 0.5);
+            --divider: rgba(148, 163, 184, 0.15);
+
+            /* 阴影与光晕 */
+            --glow-cyan: 0 0 12px rgba(0, 255, 170, 0.25);
+            --glow-sky: 0 0 12px rgba(56, 189, 248, 0.2);
+            --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.08);
+
+            /* 尺寸 */
+            --header-height: 56px;
+            --sidebar-width: 320px;
+            --sidebar-collapsed: 64px;
+            --radius-lg: 12px;
+            --radius-md: 8px;
+            --radius-sm: 6px;
+
+            /* 字体 */
+            --font-sans: 'Inter', 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: var(--font-sans);
+            font-size: 14px;
+            color: var(--text-primary);
+            background: var(--bg-deep);
+        }
+
+        /* ==================== 滚动条 ==================== */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-sky);
+            border-radius: 3px;
+        }
+
+        /* ==================== 登录遮罩 ==================== */
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background: linear-gradient(135deg, #02060d 0%, #0c1220 50%, #02060d 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+        .login-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .login-overlay::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 30% 20%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
+                        radial-gradient(ellipse at 70% 80%, rgba(0, 255, 170, 0.05) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .login-card {
+            position: relative;
+            width: 420px;
+            padding: 48px 40px;
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card), var(--shadow-glow);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 1;
+        }
+
+        .login-logo {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, var(--accent-sky), var(--accent-cyan));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: #02060d;
+            font-weight: 700;
+            box-shadow: 0 0 24px rgba(56, 189, 248, 0.4);
+        }
+
+        .login-title {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-title);
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .login-subtitle {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-bottom: 36px;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(2, 6, 23, 0.6);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: var(--font-sans);
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .form-input:focus {
+            border-color: var(--accent-sky);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+        }
+        .form-input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .login-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+
+        .remember-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .remember-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent-sky);
+            cursor: pointer;
+        }
+
+        .forget-link {
+            color: var(--accent-sky);
+            text-decoration: none;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        .forget-link:hover {
+            opacity: 0.8;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, var(--accent-sky), #2563eb);
+            border: none;
+            border-radius: var(--radius-md);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.3s;
+            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+        }
+        .btn-login:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(37, 99, 235, 0.4);
+        }
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .login-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 24px 0;
+            color: var(--text-dim);
+            font-size: 12px;
+        }
+        .login-divider::before,
+        .login-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--divider);
+        }
+
+        .sso-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .sso-btn {
+            flex: 1;
+            padding: 10px;
+            background: rgba(2, 6, 23, 0.5);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .sso-btn:hover {
+            background: rgba(56, 189, 248, 0.1);
+            border-color: var(--accent-sky);
+            color: var(--text-primary);
+        }
+
+        /* ==================== 主应用布局 ==================== */
+        .app-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            overflow: hidden;
+        }
+
+        /* ==================== 顶部导航栏 ==================== */
+        .topbar {
+            height: var(--header-height);
+            flex-shrink: 0;
+            background: rgba(7, 11, 20, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+            position: relative;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-sky), var(--accent-cyan));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #02060d;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .logo-text .logo-cn {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-title);
+            letter-spacing: 0.5px;
+        }
+
+        .logo-text .logo-en {
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .topbar-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--divider);
+        }
+
+        .view-switcher {
+            display: flex;
+            background: rgba(2, 6, 23, 0.5);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 3px;
+            gap: 3px;
+        }
+
+        .view-switch-btn {
+            padding: 6px 16px;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .view-switch-btn:hover {
+            color: var(--text-primary);
+        }
+        .view-switch-btn.active {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-sky);
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.1);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .topbar-icon-btn {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .topbar-icon-btn:hover {
+            background: rgba(56, 189, 248, 0.1);
+            border-color: var(--accent-sky);
+            color: var(--accent-sky);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px;
+            background: rgba(2, 6, 23, 0.5);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .user-info:hover {
+            border-color: var(--accent-sky);
+        }
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-sky), var(--accent-cyan));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #02060d;
+        }
+        .user-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .user-info .dropdown-arrow {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        /* ==================== 主体内容区 ==================== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ==================== 侧边栏 ==================== */
+        .sidebar {
+            width: var(--sidebar-width);
+            flex-shrink: 0;
+            background: rgba(7, 11, 20, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-right: 1px solid var(--border-glass);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: width 0.3s;
+        }
+
+        .sidebar-search {
+            padding: 16px;
+            border-bottom: 1px solid var(--divider);
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .search-input-wrapper i {
+            position: absolute;
+            left: 12px;
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            background: rgba(2, 6, 23, 0.6);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .search-input:focus {
+            border-color: var(--accent-sky);
+        }
+        .search-input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 0;
+        }
+
+        .nav-group-title {
+            padding: 12px 20px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .nav-item:hover {
+            background: rgba(56, 189, 248, 0.06);
+            color: var(--text-primary);
+        }
+        .nav-item.active {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-sky);
+        }
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 20px;
+            background: var(--accent-sky);
+            border-radius: 0 2px 2px 0;
+        }
+        .nav-item i {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+        .nav-item .badge {
+            margin-left: auto;
+            padding: 2px 8px;
+            background: rgba(0, 255, 170, 0.15);
+            color: var(--accent-cyan);
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 10px;
+            font-family: var(--font-mono);
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--divider);
+        }
+
+        .bridge-stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(2, 6, 23, 0.4);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            margin-bottom: 8px;
+        }
+        .bridge-stat-row:last-child {
+            margin-bottom: 0;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            font-family: var(--font-mono);
+        }
+
+        /* ==================== 地图区域 ==================== */
+        .map-area {
+            flex: 1;
+            position: relative;
+            background: var(--bg-deep);
+            overflow: hidden;
+        }
+
+        .cesium-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* 模拟 Cesium 地图背景 */
+        .map-canvas {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at 50% 40%, #0a1628 0%, #02060d 70%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 网格线动画 */
+        .map-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridMove 20s linear infinite;
+        }
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(60px, 60px); }
+        }
+
+        /* 模拟桥梁节点 */
+        .bridge-node {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: var(--accent-cyan);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(0, 255, 170, 0.6), 0 0 24px rgba(0, 255, 170, 0.3);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            animation: nodePulse 3s ease-in-out infinite;
+        }
+        .bridge-node:hover {
+            transform: scale(1.4);
+            box-shadow: 0 0 20px rgba(0, 255, 170, 0.8), 0 0 40px rgba(0, 255, 170, 0.4);
+        }
+        .bridge-node[data-status="red"] {
+            background: var(--accent-red);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.6), 0 0 24px rgba(239, 68, 68, 0.3);
+        }
+        .bridge-node[data-status="red"]:hover {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 0 0 40px rgba(239, 68, 68, 0.4);
+        }
+        .bridge-node[data-status="yellow"] {
+            background: var(--accent-yellow);
+            box-shadow: 0 0 12px rgba(250, 204, 21, 0.6), 0 0 24px rgba(250, 204, 21, 0.3);
+        }
+        .bridge-node[data-status="yellow"]:hover {
+            box-shadow: 0 0 20px rgba(250, 204, 21, 0.8), 0 0 40px rgba(250, 204, 21, 0.4);
+        }
+
+        @keyframes nodePulse {
+            0%, 100% { box-shadow: 0 0 12px rgba(0, 255, 170, 0.6), 0 0 24px rgba(0, 255, 170, 0.3); }
+            50% { box-shadow: 0 0 18px rgba(0, 255, 170, 0.8), 0 0 36px rgba(0, 255, 170, 0.4); }
+        }
+
+        /* 节点标签泡泡 */
+        .node-label {
+            position: absolute;
+            top: -32px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            font-size: 11px;
+            color: #0284C7;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        /* 连线 */
+        .map-link {
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-sky), transparent);
+            transform-origin: left center;
+            opacity: 0.4;
+            animation: linkFlow 3s linear infinite;
+        }
+        @keyframes linkFlow {
+            0% { background-position: -100px 0; }
+            100% { background-position: 100px 0; }
+        }
+
+        /* ==================== 浮动面板 ==================== */
+        .floating-panel {
+            position: absolute;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            overflow: hidden;
+        }
+
+        /* 左上角信息面板 */
+        .info-panel {
+            top: 16px;
+            left: 16px;
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .info-card {
+            padding: 16px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+        }
+
+        .info-card-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-card-title .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 6px var(--accent-cyan);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 13px;
+        }
+        .stat-row .label {
+            color: var(--text-secondary);
+        }
+        .stat-row .value {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+
+        /* 右下角控制面板 */
+        .control-panel {
+            bottom: 20px;
+            right: 20px;
+            width: 360px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .glass-panel {
+            padding: 18px;
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-title .tag {
+            padding: 2px 8px;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-emerald);
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+        }
+
+        .gradient-title {
+            font-size: 17px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-sky), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 14px;
+            line-height: 1.3;
+        }
+
+        /* 图层开关 */
+        .layer-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .layer-switch {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 自定义 Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 38px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #1E293B;
+            transition: .3s;
+            border-radius: 20px;
+            border: 1px solid var(--border-glass);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #94A3B8;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: rgba(16, 185, 129, 0.2);
+            border-color: var(--accent-emerald);
+        }
+        input:checked + .slider:before {
+            transform: translateX(18px);
+            background-color: var(--accent-emerald);
+            box-shadow: 0 0 8px var(--accent-emerald);
+        }
+
+        /* 时间选择行 */
+        .time-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .glass-select {
+            flex: 1;
+            padding: 10px 12px;
+            background: rgba(2, 6, 23, 0.6);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            color: var(--accent-cyan);
+            font-size: 13px;
+            font-family: var(--font-sans);
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .glass-select:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(0, 255, 170, 0.1);
+        }
+        .glass-select option {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        /* 运行按钮 */
+        .run-pred-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--accent-emerald), #059669);
+            border: none;
+            border-radius: var(--radius-md);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .run-pred-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+        .run-pred-btn:active {
+            transform: translateY(0);
+        }
+        .run-pred-btn .spin-dot {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 统计卡片网格 */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card {
+            padding: 12px 8px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            border: 1px solid;
+        }
+
+        .stat-card.red-card {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+        .stat-card.yellow-card {
+            background: rgba(250, 204, 21, 0.1);
+            border-color: rgba(250, 204, 21, 0.3);
+        }
+        .stat-card.green-card {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .stat-num {
+            font-size: 22px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            margin-bottom: 2px;
+        }
+        .red-card .stat-num { color: var(--accent-red); }
+        .yellow-card .stat-num { color: var(--accent-yellow); }
+        .green-card .stat-num { color: var(--accent-emerald); }
+
+        .stat-txt {
+            font-size: 10px;
+            color: var(--text-dim);
+            line-height: 1.3;
+        }
+
+        /* 播放器控制条 */
+        .player-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(2, 6, 23, 0.5);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
+        }
+
+        .flat-step-btn,
+        .flat-play-btn {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .flat-step-btn:hover:not(:disabled),
+        .flat-play-btn:hover {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: var(--accent-sky);
+            color: var(--accent-sky);
+        }
+        .flat-step-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .flat-play-btn {
+            width: auto;
+            padding: 0 16px;
+            background: linear-gradient(135deg, var(--accent-emerald), #059669);
+            border: none;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            gap: 6px;
+        }
+        .flat-play-btn:hover {
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .flat-play-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* 滑块 */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: rgba(56, 189, 248, 0.15);
+            border-radius: 3px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            outline: none;
+            margin: 10px 0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            border: 2px solid #fff;
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+        }
+
+        /* 图例 */
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .legend-line {
+            width: 24px;
+            height: 2px;
+            background: var(--accent-sky);
+            flex-shrink: 0;
+        }
+        .legend-sm-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .legend-label {
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+        .green-key { color: var(--accent-emerald); }
+        .blue-key { color: var(--accent-sky); }
+        .legend-congestion {
+            gap: 12px;
+            margin-top: 4px;
+        }
+        .legend-congestion .lg-txt {
+            font-size: 11px;
+            margin-left: 2px;
+        }
+        .lg-txt.red { color: var(--accent-red); }
+        .lg-txt.yellow { color: var(--accent-yellow); }
+        .lg-txt.green { color: var(--accent-emerald); }
+
+        /* 提示文字 */
+        .hint {
+            font-size: 12px;
+            color: var(--text-dim);
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .hint .dot-color {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        /* 分割线 */
+        .divider {
+            height: 1px;
+            background: var(--divider);
+            border: none;
+            margin: 14px 0;
+        }
+
+        /* Meta 行 */
+        .meta-line {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-align: center;
+            padding: 6px 0;
+            font-family: var(--font-mono);
+        }
+
+        /* Ghost 按钮 */
+        .ghost-btn {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .ghost-btn:hover {
+            border-color: var(--accent-sky);
+            color: var(--accent-sky);
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        /* ==================== 节点详情弹窗 ==================== */
+        .node-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .node-modal-overlay.active {
+            display: flex;
+        }
+
+        .node-modal {
+            width: min(900px, 85vw);
+            max-height: 85vh;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--divider);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-title);
+        }
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-md);
+            color: var(--text-dim);
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .modal-close:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .chart-placeholder {
+            width: 100%;
+            height: 320px;
+            background: rgba(2, 6, 23, 0.5);
+            border: 1px dashed var(--border-glass);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+
+        /* ==================== 通知角标 ==================== */
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 10px;
+            height: 10px;
+            background: var(--accent-red);
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+        }
+
+        /* ==================== 加载动画 ==================== */
+        .map-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 13px;
+            z-index: 5;
+        }
+        .map-loading .loading-icon {
+            font-size: 40px;
+            color: var(--accent-sky);
+            animation: spin 1.5s linear infinite;
+            margin-bottom: 8px;
+        }
+        .map-loading .loading-hint {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        /* ==================== 响应式 ==================== */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                left: -100%;
+                top: 0;
+                height: 100%;
+                z-index: 200;
+                box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+            }
+            .sidebar.open {
+                left: 0;
+            }
+            .control-panel {
+                width: calc(100vw - 32px);
+                right: 16px;
+            }
+            .info-panel {
+                width: calc(100vw - 32px);
+                left: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== 登录界面 ==================== -->
+<div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+        <div class="login-logo">SH</div>
+        <h1 class="login-title">上海市桥隧群数字孪生平台</h1>
+        <p class="login-subtitle">Shanghai Bridge &amp; Tunnel Digital Twin Platform</p>
+
+        <div class="form-group">
+            <label>用户名</label>
+            <input type="text" class="form-input" placeholder="请输入用户名" value="admin">
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" class="form-input" placeholder="请输入密码" value="••••••••">
+        </div>
+
+        <div class="login-actions">
+            <label class="remember-label">
+                <input type="checkbox" checked>
+                记住我
+            </label>
+            <a class="forget-link">忘记密码？</a>
+        </div>
+
+        <button class="btn-login" onclick="handleLogin()">登录系统</button>
+
+        <div class="login-divider">或使用以下方式登录</div>
+
+        <div class="sso-buttons">
+            <button class="sso-btn">
+                <i class="fab fa-microsoft"></i>
+                企业 SSO
+            </button>
+            <button class="sso-btn">
+                <i class="fab fa-weixin"></i>
+                微信扫码
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 主应用 ==================== -->
+<div class="app-container" id="appContainer" style="display: none;">
+
+    <!-- 顶部导航栏 -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <div class="logo-area">
+                <div class="logo-icon">SH</div>
+                <div class="logo-text">
+                    <span class="logo-cn">上海市桥隧群数字孪生平台</span>
+                    <span class="logo-en">Shanghai Bridge &amp; Tunnel Digital Twin</span>
+                </div>
+            </div>
+            <div class="topbar-divider"></div>
+            <div class="view-switcher">
+                <button class="view-switch-btn active" onclick="switchView(this, '3d')">
+                    <i class="fa fa-cube"></i>
+                    3D 地图
+                </button>
+                <button class="view-switch-btn" onclick="switchView(this, 'topo')">
+                    <i class="fa fa-network-wired"></i>
+                    2D 拓扑
+                </button>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <button class="topbar-icon-btn" title="消息通知">
+                <i class="fa fa-bell"></i>
+                <span class="notification-badge"></span>
+            </button>
+            <button class="topbar-icon-btn" title="系统设置">
+                <i class="fa fa-cog"></i>
+            </button>
+            <button class="topbar-icon-btn" title="全屏">
+                <i class="fa fa-expand"></i>
+            </button>
+            <div class="user-info">
+                <div class="user-avatar">A</div>
+                <span class="user-name">Admin</span>
+                <span class="dropdown-arrow"><i class="fa fa-chevron-down"></i></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主体内容 -->
+    <div class="main-content">
+        <!-- 侧边栏 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-search">
+                <div class="search-input-wrapper">
+                    <i class="fa fa-search"></i>
+                    <input type="text" class="search-input" placeholder="搜索桥梁、隧道、设备...">
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-group-title">总览</div>
+                <a class="nav-item active" onclick="selectNav(this)">
+                    <i class="fa fa-chart-line"></i>
+                    <span>运行总览</span>
+                </a>
+                <a class="nav-item" onclick="selectNav(this)">
+                    <i class="fa fa-globe"></i>
+                    <span>全局态势</span>
+                </a>
+
+                <div class="nav-group-title">桥隧管理</div>
+                <a class="nav-item" onclick="selectNav(this)">
+                    <i class="fa fa-bridge"></i>
+                    <span>桥梁列表</span>
+                    <span class="badge">24</span>
+                </a>
+                <a class="nav-item" onclick="selectNav(this)">
+                    <i class="fa fa-road"></i>
+                    <span>隧道列表</span>
+                    <span class="badge">8</span>
+                </a>
+                <a class="nav-item" onclick="selectNav(this)">
+                    <i class="fa fa-triangle-exclamation"></i>
+                    <span>隐患台账</span>
+                </a>
+
+                <div class="nav-group-title">智能推演</div>
+                <a class="nav-item" onclick="selectNav(this)">
+                    <i class="fa fa-robot"></i>
+                    <span>流量预测</span>
+                </a>
+                <a class="nav-item" onclick="selectNav(this)">
+                    <i class="fa fa-wind"></i>
+                    <span>风荷载分析</span>
+                </a>
+                <a class="nav-item" onclick="selectNav(this)">
+                    <i class="fa fa-water"></i>
+                    <span>水文监测</span>
+                </a>
+
+                <div class="nav-group-title">系统管理</div>
+                <a class="nav-item" onclick="selectNav(this)">
+                    <i class="fa fa-database"></i>
+                    <span>数据管理</span>
+                </a>
+                <a class="nav-item" onclick="selectNav(this)">
+                    <i class="fa fa-users"></i>
+                    <span>用户权限</span>
+                </a>
+                <a class="nav-item" onclick="selectNav(this)">
+                    <i class="fa fa-cogs"></i>
+                    <span>系统配置</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="bridge-stat-row">
+                    <span class="stat-label">在线桥隧</span>
+                    <span class="stat-value">32 / 32</span>
+                </div>
+                <div class="bridge-stat-row">
+                    <span class="stat-label">异常预警</span>
+                    <span class="stat-value" style="color: var(--accent-red);">3</span>
+                </div>
+                <div class="bridge-stat-row">
+                    <span class="stat-label">推演进度</span>
+                    <span class="stat-value">98%</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 地图区域 -->
+        <main class="map-area">
+            <div class="cesium-container">
+                <div class="map-canvas" id="mapCanvas">
+                    <div class="map-grid"></div>
+
+                    <!-- 模拟桥梁节点 -->
+                    <div class="bridge-node" style="top: 30%; left: 25%;" data-status="normal" onclick="openNodeModal('杨浦大桥', 'normal')">
+                        <div class="node-label">杨浦大桥</div>
+                    </div>
+                    <div class="bridge-node" style="top: 45%; left: 40%;" data-status="normal" onclick="openNodeModal('南浦大桥', 'normal')">
+                        <div class="node-label">南浦大桥</div>
+                    </div>
+                    <div class="bridge-node" style="top: 35%; left: 55%;" data-status="red" onclick="openNodeModal('徐浦大桥', 'red')">
+                        <div class="node-label">徐浦大桥</div>
+                    </div>
+                    <div class="bridge-node" style="top: 55%; left: 35%;" data-status="yellow" onclick="openNodeModal('闵浦大桥', 'yellow')">
+                        <div class="node-label">闵浦大桥</div>
+                    </div>
+                    <div class="bridge-node" style="top: 25%; left: 60%;" data-status="normal" onclick="openNodeModal('奉浦大桥', 'normal')">
+                        <div class="node-label">奉浦大桥</div>
+                    </div>
+                    <div class="bridge-node" style="top: 50%; left: 70%;" data-status="normal" onclick="openNodeModal('松浦大桥', 'normal')">
+                        <div class="node-label">松浦大桥</div>
+                    </div>
+                    <div class="bridge-node" style="top: 65%; left: 50%;" data-status="normal" onclick="openNodeModal('闵浦二桥', 'normal')">
+                        <div class="node-label">闵浦二桥</div>
+                    </div>
+                    <div class="bridge-node" style="top: 40%; left: 75%;" data-status="normal" onclick="openNodeModal('嘉闵高架', 'normal')">
+                        <div class="node-label">嘉闵高架</div>
+                    </div>
+
+                    <!-- 模拟连线 -->
+                    <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;" id="linkSvg"></svg>
+                </div>
+
+                <div class="map-loading" id="mapLoading">
+                    <div class="loading-icon"><i class="fa fa-circle-notch"></i></div>
+                    <div>正在加载空间网络拓扑地图...</div>
+                    <div class="loading-hint">首次加载约需 3-10 秒（含节点和路网数据）</div>
+                </div>
+            </div>
+
+            <!-- 左上角信息面板 -->
+            <div class="info-panel">
+                <div class="info-card">
+                    <div class="info-card-title">
+                        <span class="dot"></span>
+                        实时运行状态
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">平台运行时间</span>
+                        <span class="value" id="uptime">127 天 04:32:18</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">数据接入总量</span>
+                        <span class="value">2.48 TB</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">传感器在线率</span>
+                        <span class="value" style="color: var(--accent-emerald);">99.6%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">AI 推演模型</span>
+                        <span class="value" style="color: var(--accent-cyan);">V-STGRN v2.3</span>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-title">
+                        <span class="dot" style="background: var(--accent-emerald);"></span>
+                        交通流状态
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">畅通</span>
+                        <span class="value" style="color: var(--accent-emerald);">18 座</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">缓行</span>
+                        <span class="value" style="color: var(--accent-yellow);">4 座</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="label">拥堵</span>
+                        <span class="value" style="color: var(--accent-red);">2 座</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右下角控制面板 -->
+            <div class="control-panel">
+                <!-- 流量预测模块 -->
+                <div class="glass-panel">
+                    <div class="panel-title">
+                        流量预测模块
+                        <span class="tag">V-STGRN</span>
+                    </div>
+                    <h2 class="gradient-title">交通流实时预测系统</h2>
+
+                    <div class="layer-row">
+                        <div class="layer-switch">
+                            <label class="switch">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>流量徽标 (推演后)</span>
+                        </div>
+                    </div>
+                    <div class="layer-row">
+                        <div class="layer-switch">
+                            <label class="switch">
+                                <input type="checkbox" checked disabled>
+                                <span class="slider"></span>
+                            </label>
+                            <span>全量底图 (Cesium)</span>
+                        </div>
+                    </div>
+                    <div class="layer-row">
+                        <div class="layer-switch">
+                            <label class="switch">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span>显示路网连线 (link_matrix)</span>
+                        </div>
+                    </div>
+
+                    <div class="hint">
+                        <span class="dot-color" style="background:#00FFAA"></span>
+                        网络节点: 24 &nbsp;·&nbsp; 路网连线: 156
+                    </div>
+
+                    <hr class="divider">
+
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">选择推演时间</div>
+                    <div class="time-row">
+                        <select class="glass-select">
+                            <option>星期一</option>
+                            <option>星期二</option>
+                            <option>星期三</option>
+                            <option>星期四</option>
+                            <option>星期五</option>
+                            <option>星期六</option>
+                            <option>星期日</option>
+                        </select>
+                        <select class="glass-select">
+                            <option>08:00</option>
+                            <option>09:00</option>
+                            <option>10:00</option>
+                            <option>11:00</option>
+                            <option>12:00</option>
+                            <option>13:00</option>
+                            <option>14:00</option>
+                        </select>
+                    </div>
+
+                    <button class="run-pred-btn" onclick="runPrediction()">
+                        <span>▶</span>
+                        启动 AI 预测引擎
+                    </button>
+                </div>
+
+                <!-- 元素图例 -->
+                <div class="glass-panel">
+                    <div class="panel-title">元素图例</div>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background:#00FFAA"></span>
+                        <span class="legend-label green-key">网络节点:</span>
+                        <span class="legend-val">桥隧空间静态拓扑点</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-line"></span>
+                        <span class="legend-label blue-key">路网连线:</span>
+                        <span class="legend-val">邻接路网直达拓扑路径</span>
+                    </div>
+                    <div class="legend-item legend-congestion">
+                        <span class="legend-sm-dot" style="background:#EF4444"></span><span class="lg-txt red">拥堵 (RED)</span>
+                        <span class="legend-sm-dot" style="background:#FACC15"></span><span class="lg-txt yellow">缓行 (YELLOW)</span>
+                        <span class="legend-sm-dot" style="background:#10B981"></span><span class="lg-txt green">畅通 (GREEN)</span>
+                    </div>
+                </div>
+
+                <!-- 推演结果面板 -->
+                <div class="glass-panel" id="resultPanel" style="display: none;">
+                    <div class="panel-title">
+                        推演结果与播放
+                        <span class="tag">Step 3/12</span>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-card red-card">
+                            <div class="stat-num">2</div>
+                            <div class="stat-txt">拥堵 RED<br>(≥1200 辆/h)</div>
+                        </div>
+                        <div class="stat-card yellow-card">
+                            <div class="stat-num">4</div>
+                            <div class="stat-txt">缓行 YELLOW<br>(≥600 辆/h)</div>
+                        </div>
+                        <div class="stat-card green-card">
+                            <div class="stat-num">18</div>
+                            <div class="stat-txt">畅通 GREEN<br>(&lt;600 辆/h)</div>
+                        </div>
+                    </div>
+                    <div class="meta-line">基准时刻：2026-08-28 08:00:00</div>
+
+                    <div class="player-bar">
+                        <button class="flat-step-btn" disabled title="上一步">
+                            <i class="fa fa-step-backward"></i>
+                        </button>
+                        <button class="flat-play-btn" id="playBtn" onclick="togglePlay()">
+                            <i class="fa fa-play" id="playIcon"></i>
+                            <span id="playText">循环播放</span>
+                        </button>
+                        <button class="flat-step-btn" title="下一步">
+                            <i class="fa fa-step-forward"></i>
+                        </button>
+                    </div>
+
+                    <input type="range" min="0" max="11" value="3" id="timeSlider">
+
+                    <div class="btn-row">
+                        <button class="ghost-btn" onclick="resetVisual()">↺ 重置视觉</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- ==================== 节点详情弹窗 ==================== -->
+<div class="node-modal-overlay" id="nodeModal" onclick="closeNodeModal(event)">
+    <div class="node-modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 id="modalNodeName">桥梁详情</h3>
+            <button class="modal-close" onclick="closeNodeModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                <div class="info-card">
+                    <div class="info-card-title">基本信息</div>
+                    <div class="stat-row"><span class="label">桥梁编号</span><span class="value">SH-B-001</span></div>
+                    <div class="stat-row"><span class="label">建成年份</span><span class="value">1993</span></div>
+                    <div class="stat-row"><span class="label">桥梁类型</span><span class="value">斜拉桥</span></div>
+                    <div class="stat-row"><span class="label">主跨长度</span><span class="value">602 m</span></div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-title">实时状态</div>
+                    <div class="stat-row"><span class="label">交通流量</span><span class="value" style="color:var(--accent-emerald)">1,248 辆/h</span></div>
+                    <div class="stat-row"><span class="label">结构健康</span><span class="value" style="color:var(--accent-emerald)">正常</span></div>
+                    <div class="stat-row"><span class="label">风速</span><span class="value">3.2 m/s</span></div>
+                    <div class="stat-row"><span class="label">水位</span><span class="value">2.1 m</span></div>
+                </div>
+            </div>
+            <div class="info-card" style="margin-bottom: 16px;">
+                <div class="info-card-title">24h 流量趋势</div>
+                <div class="chart-placeholder">
+                    <i class="fa fa-chart-line" style="margin-right: 8px;"></i>
+                    ECharts 流量趋势图（此处为占位）
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-card-title">传感器数据</div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                    <div style="text-align: center; padding: 10px; background: rgba(2,6,23,0.4); border-radius: 6px;">
+                        <div style="font-size: 11px; color: var(--text-dim);">应变</div>
+                        <div style="font-size: 16px; font-weight: 600; color: var(--accent-cyan); font-family: var(--font-mono);">124 με</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: rgba(2,6,23,0.4); border-radius: 6px;">
+                        <div style="font-size: 11px; color: var(--text-dim);">倾角</div>
+                        <div style="font-size: 16px; font-weight: 600; color: var(--accent-cyan); font-family: var(--font-mono);">0.02°</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: rgba(2,6,23,0.4); border-radius: 6px;">
+                        <div style="font-size: 11px; color: var(--text-dim);">振动</div>
+                        <div style="font-size: 16px; font-weight: 600; color: var(--accent-cyan); font-family: var(--font-mono);">0.45 Hz</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: rgba(2,6,23,0.4); border-radius: 6px;">
+                        <div style="font-size: 11px; color: var(--text-dim);">温度</div>
+                        <div style="font-size: 16px; font-weight: 600; color: var(--accent-cyan); font-family: var(--font-mono);">28°C</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==================== 登录 ====================
+    function handleLogin() {
+        const overlay = document.getElementById('loginOverlay');
+        const app = document.getElementById('appContainer');
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            overlay.style.visibility = 'hidden';
+            overlay.style.display = 'none';
+            app.style.display = 'flex';
+            initMap();
+        }, 500);
+    }
+
+    // ==================== 导航 ====================
+    function selectNav(el) {
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    // ==================== 视图切换 ====================
+    function switchView(btn, view) {
+        document.querySelectorAll('.view-switch-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // 这里可以切换地图渲染模式
+        console.log('切换到视图:', view);
+    }
+
+    // ==================== 地图初始化 ====================
+    function initMap() {
+        setTimeout(() => {
+            document.getElementById('mapLoading').style.display = 'none';
+            drawLinks();
+            startUptime();
+        }, 2000);
+    }
+
+    // 绘制连线（SVG）
+    function drawLinks() {
+        const svg = document.getElementById('linkSvg');
+        const canvas = document.getElementById('mapCanvas');
+        const rect = canvas.getBoundingClientRect();
+        const nodes = document.querySelectorAll('.bridge-node');
+        const positions = [];
+
+        nodes.forEach(node => {
+            const x = node.offsetLeft + node.offsetWidth / 2;
+            const y = node.offsetTop + node.offsetHeight / 2;
+            positions.push({ x, y, el: node });
+        });
+
+        // 绘制一些连线
+        const links = [[0,1], [1,2], [2,3], [3,0], [0,4], [1,5], [2,5], [3,6], [4,5], [5,7]];
+        svg.innerHTML = '';
+        svg.setAttribute('width', rect.width);
+        svg.setAttribute('height', rect.height);
+
+        links.forEach(([i, j]) => {
+            if (i < positions.length && j < positions.length) {
+                const p1 = positions[i];
+                const p2 = positions[j];
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', p1.x);
+                line.setAttribute('y1', p1.y);
+                line.setAttribute('x2', p2.x);
+                line.setAttribute('y2', p2.y);
+                line.setAttribute('stroke', 'rgba(56, 189, 248, 0.25)');
+                line.setAttribute('stroke-width', '1.5');
+                line.style.animation = 'linkFlow 3s linear infinite';
+                svg.appendChild(line);
+            }
+        });
+    }
+
+    // ==================== 运行时间 ====================
+    function startUptime() {
+        let seconds = 127 * 86400 + 4 * 3600 + 32 * 60 + 18;
+        setInterval(() => {
+            seconds++;
+            const d = Math.floor(seconds / 86400);
+            const h = Math.floor((seconds % 86400) / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            document.getElementById('uptime').textContent =
+                `${d} 天 ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }, 1000);
+    }
+
+    // ==================== 节点弹窗 ====================
+    function openNodeModal(name, status) {
+        document.getElementById('modalNodeName').textContent = name + ' — 桥梁详情';
+        document.getElementById('nodeModal').classList.add('active');
+    }
+
+    function closeNodeModal(event) {
+        if (!event || event.target.id === 'nodeModal') {
+            document.getElementById('nodeModal').classList.remove('active');
+        }
+    }
+
+    // ESC 关闭弹窗
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeNodeModal();
+        }
+    });
+
+    // ==================== 预测引擎 ====================
+    let isRunning = false;
+    function runPrediction() {
+        if (isRunning) return;
+        isRunning = true;
+        const btn = document.querySelector('.run-pred-btn');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<span class="spin-dot"></span>V-STGRN 推演计算中 (~40s) ...';
+        btn.disabled = true;
+
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+            isRunning = false;
+            document.getElementById('resultPanel').style.display = 'block';
+        }, 3000);
+    }
+
+    // ==================== 播放器控制 ====================
+    let isPlaying = false;
+    function togglePlay() {
+        isPlaying = !isPlaying;
+        const icon = document.getElementById('playIcon');
+        const text = document.getElementById('playText');
+        if (isPlaying) {
+            icon.className = 'fa fa-pause';
+            text.textContent = '停止播放';
+        } else {
+            icon.className = 'fa fa-play';
+            text.textContent = '循环播放';
+        }
+    }
+
+    function resetVisual() {
+        const slider = document.getElementById('timeSlider');
+        slider.value = 0;
+        // 重置视觉状态
+        console.log('重置视觉');
+    }
+
+    // 滑块变化
+    document.getElementById('timeSlider').addEventListener('input', function(e) {
+        const step = parseInt(e.target.value);
+        const tag = document.querySelector('.panel-title .tag');
+        if (tag) {
+            tag.textContent = `Step ${step + 1}/12`;
+        }
+    });
+
+    // ==================== 窗口大小调整时重绘连线 ====================
+    window.addEventListener('resize', () => {
+        if (document.getElementById('mapLoading').style.display !== 'none') {
+            return;
+        }
+        drawLinks();
+    });
+
+    // 回车登录
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') {
+            handleLogin();
+        }
+    });
+</script>
+
+</body>
+</html>
