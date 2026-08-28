@@ -70,8 +70,8 @@ DB_NAME=bridge_twin
 DB_USER=postgres
 DB_PASSWORD=你的postgres密码
 
-# 坐标系来源（可选）：gcj02（默认）/ bd09 / wgs84
-COORD_SOURCE=gcj02
+# 坐标系来源（可选）： bd09（默认）/ gcj02 / wgs84
+COORD_SOURCE=bd09
 ```
 
 3. 一键建库 + 导入表结构：
