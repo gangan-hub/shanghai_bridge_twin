@@ -564,6 +564,8 @@ onMounted(() => {
     infoBox: false,
     selectionIndicator: false,
   });
+  // 新增这一行,按设备像素比渲染
+  viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, 2);
   updateMapMode(props.mapMode);
   viewer.camera.setView({
     destination: Cesium.Cartesian3.fromDegrees(121.4737, 31.2304, 25000),
