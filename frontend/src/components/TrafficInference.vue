@@ -53,7 +53,7 @@
         @click="runInference"
       >
         <span v-if="running" class="spin-dot"></span>
-        {{ running ? 'V-STGRN 推演计算中 (~40s) ...' : '▶ 启动 AI 预测引擎' }}
+        {{ running ? 'V-STGRN 推演计算中...' : '▶ 启动全局流量预测' }}
       </button>
 
       <div class="pred-timeline" v-if="inferenceResult">

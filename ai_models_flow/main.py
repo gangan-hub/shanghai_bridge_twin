@@ -8,7 +8,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
-import os
 from models.v_stgrn import V_STGRN
 
 # ================= 1. 全局配置与超参数 =================
@@ -21,14 +20,17 @@ EPOCHS = 100
 LEARNING_RATE = 0.001
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# 👇 全部改为纯相对路径（直接基于当前 traffic_prediction 目录）
-DATA_DIR = "./shanghai_data/mock_data"
-DTW_PATH = "./shanghai_data/generate_dtw_shanghai/dtw_adj_shanghai.csv"
-ACC_PATH = "./shanghai_data/generate_acc_shanghai/link_matrix_shanghai.csv"
-RESULTS_DIR = "./results"
-BEST_MODEL_PATH = "./results/checkpoints/v_stgrn_best.pth"
+# 👇 升级为绝对路径动态拼接（告别运行目录报错问题）
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+DATA_DIR = os.path.join(BASE_DIR, "shanghai_data", "mock_data")
+DTW_PATH = os.path.join(BASE_DIR, "shanghai_data", "generate_dtw_shanghai", "dtw_adj_shanghai.csv")
+ACC_PATH = os.path.join(BASE_DIR, "shanghai_data", "generate_acc_shanghai", "link_matrix_shanghai.csv")
+RESULTS_DIR = os.path.join(BASE_DIR, "results")
+BEST_MODEL_PATH = os.path.join(RESULTS_DIR, "checkpoints", "v_stgrn_best.pth")
 
 COLOR_BG, COLOR_TEXT, COLOR_TRUTH, COLOR_PRED, COLOR_FUTURE = '#080c15', '#ffffff', '#00ffcc', '#ff0055', '#0088ff'
+
 # ================= 2. 辅助函数 =================
 def normalize_adj(adj):
     adj = adj + np.eye(adj.shape[0])
@@ -60,7 +62,7 @@ def _format_ax(ax):
     ax.grid(True, color='#1a2535', linestyle='-.', alpha=0.7)
 
 
-# ================= 3. 数据加载 (5 维特征版) =================
+# ================= 3. 数据加载 (带精准时间戳切分) =================
 def load_all_data():
     print("📂 正在加载双核拓扑与 5 维多源特征数据...")
     df_acc = pd.read_csv(ACC_PATH, index_col=0)
@@ -73,40 +75,42 @@ def load_all_data():
     files.sort(key=lambda x: int(re.search(r'shanghaidata_(\d+)', os.path.basename(x)).group(1)))
 
     traffic_sequence = []
+    timestamps_list = []
+
     for file in files:
         df = pd.read_excel(file).sort_values(by='node')
 
-        # 1. 提取连续数值特征：加入 congestion (拥堵指标)
-        # 索引顺序: 0:flow, 1:poi, 2:speed, 3:congestion
+        # 提取每个文件的时间戳并记录
+        ts = pd.to_datetime(df['timestamp'].iloc[0])
+        timestamps_list.append(ts)
+
         numeric_feats = df[['flow', 'poi', 'speed', 'congestion']].interpolate(method='linear',
                                                                                limit_direction='both').fillna(0).values
 
-        # 2. 提取时间特征: 转为 0-1 的占比 (索引 4)
         times = pd.to_datetime(df['timestamp'])
         time_norm = ((times.dt.hour * 60 + times.dt.minute) / 1440.0).values.reshape(-1, 1)
 
-        # 拼接 5 维特征
         combined_feats = np.concatenate([numeric_feats, time_norm], axis=-1)
         traffic_sequence.append(combined_feats)
 
+    # 构建全局对齐时间轴
+    all_timestamps = pd.DatetimeIndex(timestamps_list).floor('30min')
     traffic_data = np.array(traffic_sequence).transpose(1, 0, 2)
 
-    # 对前4个物理数值特征独立归一化
     mean_val = np.mean(traffic_data, axis=1, keepdims=True)
     std_val = np.std(traffic_data, axis=1, keepdims=True)
     std_val[std_val < 1e-5] = 1.0
 
     traffic_data_norm = (traffic_data - mean_val) / std_val
-    # 恢复第 5 个特征（时间，索引为 4）的原始 0-1 比例
     traffic_data_norm[:, :, 4] = traffic_data[:, :, 4]
     traffic_data_norm = traffic_data_norm.transpose(1, 0, 2)
 
     X, Y = [], []
-    total_samples = traffic_data_norm.shape[0] - SEQ_LEN - PRE_LEN
+    # 修正总样本数计算
+    total_samples = traffic_data_norm.shape[0] - SEQ_LEN - PRE_LEN + 1
+
     for i in range(total_samples):
-        # X 包含全部 5 维特征
         X.append(traffic_data_norm[i: i + SEQ_LEN, :, :])
-        # Y 只保留 flow (索引 0) 用于损失计算与评估
         Y.append(traffic_data_norm[i + SEQ_LEN: i + SEQ_LEN + PRE_LEN, :, 0:1])
 
     X = np.array(X)
@@ -119,10 +123,20 @@ def load_all_data():
     X_val, Y_val = X[train_idx:val_idx], Y[train_idx:val_idx]
     X_test, Y_test = X[val_idx:], Y[val_idx:]
 
+    # 打印准确的数据集时间划分范围
+    print("\n" + "=" * 65)
+    print("📊 数据集时间段严格划分结果 (基于预测目标时间)：")
+    print(
+        f"🟢 训练集 (Train) 70%: {all_timestamps[SEQ_LEN].strftime('%m-%d %H:%M')} 到 {all_timestamps[SEQ_LEN + train_idx - 1].strftime('%m-%d %H:%M')}")
+    print(
+        f"🟡 验证集 (Val)   10%: {all_timestamps[SEQ_LEN + train_idx].strftime('%m-%d %H:%M')} 到 {all_timestamps[SEQ_LEN + val_idx - 1].strftime('%m-%d %H:%M')}")
+    print(
+        f"🔴 测试集 (Test)  20%: {all_timestamps[SEQ_LEN + val_idx].strftime('%m-%d %H:%M')} 到 {all_timestamps[-1].strftime('%m-%d %H:%M')}")
+    print("=" * 65 + "\n")
+
     latest_input = traffic_data_norm[-SEQ_LEN:, :, :]
     latest_input = np.expand_dims(latest_input, 0)
 
-    # 提取 flow 的反标准化参数 (供输出使用)
     mean_inv = mean_val[:, :, 0].reshape(1, 1, -1, 1)
     std_inv = std_val[:, :, 0].reshape(1, 1, -1, 1)
 
@@ -142,7 +156,7 @@ def run_full_pipeline():
      latest_input, adj_acc, adj_dtw, mean_inv, std_inv) = load_all_data()
 
     num_nodes = adj_acc.shape[0]
-    in_dim = 5  # 核心升级: 输入维度更新为 5 (flow, poi, speed, congestion, time)
+    in_dim = 5
     out_dim = 1
 
     adj_acc_t = torch.FloatTensor(adj_acc).to(DEVICE)

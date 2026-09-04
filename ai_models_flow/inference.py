@@ -3,15 +3,6 @@ import sys
 import json
 import glob
 import re
-
-# ===== 强制标准输出/错误 UTF-8 编码（解决 Windows cmd 默认 GBK 导致 UnicodeEncodeError） =====
-if hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
-
 import numpy as np
 import pandas as pd
 import torch
@@ -23,9 +14,8 @@ from models.v_stgrn import V_STGRN
 # ================= 0. 辅助函数与日志 =================
 def log_info(message):
     """日志重定向到 stderr，防止污染输出给前端的 JSON 数据"""
-    # 去掉 emoji，防止偶发 GBK 报错
-    plain = re.sub(r'[\U00010000-\U0010ffff]', '', str(message))
-    print(plain, file=sys.stderr)
+    print(message, file=sys.stderr)
+
 
 # ================= 1. 基础配置 =================
 SEQ_LEN = 12
@@ -34,16 +24,14 @@ HIDDEN_DIM = 64
 NUM_HEADS = 4
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# 👇 获取当前 inference.py 脚本所在的绝对目录路径
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# 👇 基于 BASE_DIR 动态拼接相对路径
 DATA_DIR = os.path.join(BASE_DIR, "shanghai_data", "mock_data")
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 BEST_MODEL_PATH = os.path.join(RESULTS_DIR, "checkpoints", "v_stgrn_best.pth")
 
 ACC_PATH = os.path.join(BASE_DIR, "shanghai_data", "generate_acc_shanghai", "link_matrix_shanghai.csv")
 DTW_PATH = os.path.join(BASE_DIR, "shanghai_data", "generate_dtw_shanghai", "dtw_adj_shanghai.csv")
+
 
 def get_congestion_level(flow):
     if flow < 600:
@@ -64,41 +52,37 @@ def normalize_adj(adj):
 
 
 # ================= 2. 时间戳精准查找 =================
-def get_t_by_weekday_and_time(target_weekday, target_hour, all_timestamps, test_start_idx):
+def get_t_by_weekday_and_time(target_weekday, target_hour, all_timestamps):
     pd_weekday = target_weekday - 1
     target_minute = 0
+
+    # 1. 计算总样本数和测试集切分点 (与训练脚本保持绝对一致)
+    total_samples = len(all_timestamps) - SEQ_LEN - PRE_LEN + 1
+    val_idx = int(total_samples * 0.80)
+
+    # 2. 测试集在原始时间轴上的真实起点与终点索引
+    test_start_real_idx = val_idx + SEQ_LEN
+    test_end_real_idx = len(all_timestamps) - PRE_LEN
 
     matches = np.where((all_timestamps.dayofweek == pd_weekday) &
                        (all_timestamps.hour == target_hour) &
                        (all_timestamps.minute == target_minute))[0]
 
-    # ===== 放宽范围：优先选未见过的纯测试集；如果没有，就用全部范围内的数据 =====
-    valid_start_strict = test_start_idx + SEQ_LEN
-    valid_end_strict = len(all_timestamps) - PRE_LEN - 1
-
-    valid_matches = [idx for idx in matches if valid_start_strict <= idx <= valid_end_strict]
-    if len(valid_matches) == 0:
-        # 回退模式：允许使用任何位置（只要输入序列有 SEQ_LEN 历史）
-        looser_start = SEQ_LEN
-        looser_end = len(all_timestamps) - PRE_LEN - 1
-        valid_matches = [idx for idx in matches if looser_start <= idx <= looser_end]
+    # 3. 过滤出只属于【纯测试集】范围内的时间点
+    valid_matches = [idx for idx in matches if test_start_real_idx <= idx <= test_end_real_idx]
 
     if len(valid_matches) == 0:
-        real_start = all_timestamps[SEQ_LEN]
-        real_end = all_timestamps[-PRE_LEN - 1]
-        # 提示里移除 emoji，避免 Windows GBK 编码报错
-        weekdays_cn = ["一","二","三","四","五","六","日"]
-        start_cn = weekdays_cn[real_start.dayofweek]
-        end_cn = weekdays_cn[real_end.dayofweek]
+        real_start = all_timestamps[test_start_real_idx]
+        real_end = all_timestamps[test_end_real_idx]
         raise ValueError(
-            f"\n时间查找失败！您请求的星期{target_weekday} {target_hour}:00 无匹配数据。\n"
-            f"可用时间段：\n"
-            f"起点: {real_start.strftime('%Y-%m-%d %H:%M')} (星期{start_cn})\n"
-            f"终点: {real_end.strftime('%Y-%m-%d %H:%M')} (星期{end_cn})\n"
-            f"请在上述范围内选择整点（星期和小时要同时匹配）。"
+            f"\n\n❌ 查找失败！您请求的时间不在模型【未见过的测试集】范围内。\n"
+            f"根据严格的数据集 80% 划分规则，当前可用的纯测试集时间段为：\n"
+            f"🟢 起点: {real_start.strftime('%Y-%m-%d %H:%M')} (星期{real_start.dayofweek + 1})\n"
+            f"🔴 终点: {real_end.strftime('%Y-%m-%d %H:%M')} (星期{real_end.dayofweek + 1})\n"
+            f"请挑选上述时间段内的一个整点进行测试！"
         )
 
-    return valid_matches[-1], all_timestamps[valid_matches[-1]]
+    return valid_matches[0], all_timestamps[valid_matches[0]]
 
 
 # ================= 3. 核心推理管线 =================
@@ -119,8 +103,6 @@ def run_inference(target_weekday, target_hour):
 
     for file in files:
         df = pd.read_excel(file).sort_values(by='node')
-
-        # 提取每个文件唯一的时间戳
         ts = pd.to_datetime(df['timestamp'].iloc[0])
         timestamps_list.append(ts)
 
@@ -129,16 +111,11 @@ def run_inference(target_weekday, target_hour):
         time_norm = ((times.dt.hour * 60 + times.dt.minute) / 1440.0).values.reshape(-1, 1)
         traffic_sequence.append(np.concatenate([numeric_feats, time_norm], axis=-1))
 
-    # 构建全局时间轴，并向下取整对齐 30 分钟
     all_timestamps = pd.DatetimeIndex(timestamps_list).floor('30min')
 
     # ================= B. 时间定位 =================
-    total_steps = len(all_timestamps) - SEQ_LEN - PRE_LEN
-    test_start_idx = int(total_steps * 0.80)
-
-    # 查找目标时刻索引
     target_idx, base_datetime = get_t_by_weekday_and_time(
-        target_weekday, target_hour, all_timestamps, test_start_idx
+        target_weekday, target_hour, all_timestamps
     )
     log_info(f"🎯 成功锁定时间: {base_datetime.strftime('%Y-%m-%d %H:%M')}")
 
@@ -148,7 +125,6 @@ def run_inference(target_weekday, target_hour):
     std_val = np.std(traffic_data, axis=1, keepdims=True)
     std_val[std_val < 1e-5] = 1.0
 
-    # 【修复】：补上反标准化的变量
     mean_inv = mean_val[:, :, 0].reshape(1, 1, -1, 1)
     std_inv = std_val[:, :, 0].reshape(1, 1, -1, 1)
 
@@ -230,25 +206,16 @@ def run_inference(target_weekday, target_hour):
         "chart_data": chart_data_list
     }
 
-    # =====================================================================
-    # 👇👇👇 临时新增代码：生成本地 JSON 文件供测试使用 (不需要时可直接删除此块) 👇👇👇
-    # =====================================================================
     map_json_path = os.path.join(RESULTS_DIR, "frontend_map_data.json")
     chart_json_path = os.path.join(RESULTS_DIR, "frontend_chart_data.json")
 
     with open(map_json_path, 'w', encoding='utf-8') as f:
-        # 为了前端查看方便，加入了 indent=2 进行格式化换行
         json.dump(final_output["map_data"], f, ensure_ascii=False, indent=2)
 
     with open(chart_json_path, 'w', encoding='utf-8') as f:
         json.dump(final_output["chart_data"], f, ensure_ascii=False, indent=2)
 
     log_info(f"💾 测试 JSON 文件已保存至 {RESULTS_DIR} 目录下")
-    # =====================================================================
-    # 👆👆👆 临时新增代码块结束 👆👆👆
-    # =====================================================================
-
-    # 依然保留对标准输出的流式打印 (给后端解析使用)
     print(json.dumps(final_output, ensure_ascii=False))
 
 
@@ -261,7 +228,7 @@ if __name__ == "__main__":
     else:
         target_weekday = 1
         target_hour = 12
-        log_info("👉 未收到参数，尝试测试 星期1 8:00")
+        log_info("👉 未收到参数，尝试测试 星期1 12:00")
 
     try:
         run_inference(target_weekday, target_hour)

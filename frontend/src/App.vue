@@ -245,7 +245,7 @@
                       @click="runShanghaiSpread" 
                       :loading="isSpreadLoading"
                       style="flex: 2; height: 36px;">
-                      {{ isSpreadLoading ? '推演中...' : '启动循环预测' }}
+                      {{ isSpreadLoading ? '推演中...' : '启动传播预测' }}
                     </el-button>
                     
                     <el-button 
